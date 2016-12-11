@@ -12,7 +12,6 @@ from pygame.locals import *
 
 class Graphics:
     """Graphics handling code"""
-
     # a list with all sub-resource dirs (the keys are in lower case)
     RESOURCE_DIRS = {resource.lower(): 'resources/' + resource for resource in os.listdir('resources')}
 

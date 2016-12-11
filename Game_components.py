@@ -27,7 +27,6 @@ class GraphicsComponent(pygame.sprite.Sprite):
         raise NotImplementedError("Please Implement this method")
 
     def display(self):
-        print(self.graphics_handler.display)
         self.graphics_handler.blit(self.sprite, self.rect)
 
 

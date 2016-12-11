@@ -65,7 +65,7 @@ class Game:
     def load_resources(self):
         self.init_sound()
         if self.show_fps:
-            self.active_game_components.append(Meter())
+            self.active_game_components.append(Meter(self.clock.get_fps, (30, 40)))
 
     # save, and unload game
     def de_init(self):
@@ -180,8 +180,6 @@ class Game:
 
             self.last_update = self.clock.tick(Game.FPS)
             loop_counter += 1 # how many loops have been made
-            self.graphics.fps = self.clock.get_fps()
-
 
 def main():
     game = Game()
