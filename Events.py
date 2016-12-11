@@ -15,7 +15,6 @@ class GameEvent:
 class LoadLevelEvent(GameEvent):
     """loads a level using Level.level_builder"""
     TYPE = 'LoadLevel'
-
     def handle(self):
         # create new level, and add it to the game state
         self.data['game_state'].level = Levels.level_builder(self.data['level'])
@@ -26,7 +25,8 @@ class AttackEvent(GameEvent):
     def handle(self):
         print('attack!')
 
-event_types = {'LoadLevelEvent': LoadLevelEvent}
+
+event_types = {'LoadLevelEvent': LoadLevelEvent, 'AttackEvent': AttackEvent}
 
 def create_game_event(type, data = None):
     return event_types[type](data)
