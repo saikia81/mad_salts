@@ -11,17 +11,18 @@
 # defender mode: is a castle defence game; the gameplay
 # story mode: crazy scientist on the run against monsters with salts
 
-import sys, os
 import signal # SIGTERM handling
-from time import sleep
+import sys
 from queue import *  # linear time progression; FIFO
-import pygame
+from time import sleep
+
 from pygame.locals import *
 
-from Levels import level_builder
+from Events import *
 from Game_components import *
 from Graphics import graphics_handler
-from Events import *
+from Levels import level_builder
+
 
 #SIGTERM (and any other signal, handling)
 # should make the game end a little graceful
@@ -130,7 +131,7 @@ class Game:
                 player.rect.move(0, 10)
             if event.key == K_s:  # down
                 player.rect.move(0, -10)
-            print('player moved: {}'.format(player.rect))
+            print('player moved: {}'.format(str((player.rect.x, player.rect.y))))
         elif event.type == KEYUP:  # something to handle seperate key pressing and releasing
             # if event.key == K_a:  # left
             #     player.move()

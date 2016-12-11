@@ -1,5 +1,5 @@
 from Game_components import *
-from Graphics import WINDOW_WIDTH, WINDOW_HEIGHT
+
 
 # make an Object file, and add all needed resources (based on folder position and file names)
 
@@ -52,7 +52,7 @@ class Level:
 def level_builder(level):
     #level specification
     if level == 0:
-        player = Player((284, 666))
+        player = Player((200, 500))
         background = Background(level)
         world_components = []  # additional dynamic blocks and other level components
     elif level == 1:

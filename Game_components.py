@@ -1,9 +1,9 @@
 import pygame
-from pygame.locals import *
-import Graphics
-# graphical game components and builders
 
-# graphical game base class
+import Graphics
+from Graphics import WINDOW_WIDTH, WINDOW_HEIGHT
+
+
 class GraphicsComponent(pygame.sprite.Sprite):
     """Base class for all Graphical Game Components"""
     def __init__(self, pos=(0, 0)):
@@ -37,6 +37,7 @@ class Background(GraphicsComponent):
     def __init__(self, level_number):
         self.NAME += str(level_number)  # A correct name is needed for initialization
         super(Background, self).__init__()
+        self.sprite = pygame.transform.scale(self.sprite, (WINDOW_WIDTH, WINDOW_HEIGHT))
 
 
 # text meters on screen (for debugging)
