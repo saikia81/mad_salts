@@ -9,7 +9,7 @@ class GraphicsComponent(pygame.sprite.Sprite):
     def __init__(self, pos=(0, 0)):
         pygame.sprite.Sprite.__init__(self)
         self.graphics_handler = Graphics.graphics_handler
-        self.sprite = self.graphics_handler.resources[self.NAME.lower()]
+        self.sprite = self.graphics_handler.resources[self.TYPE.lower()]
         self.dimensions = self.sprite.get_size()
         self.rect = pygame.Rect(pos, self.dimensions)
 
@@ -32,10 +32,10 @@ class GraphicsComponent(pygame.sprite.Sprite):
 
 class Background(GraphicsComponent):
     """Background"""
-    NAME = 'Background' # this shouldn't be used, the name should have it's number as suffix
+    TYPE = 'Background' # this shouldn't be used, the name should have it's number as suffix
 
     def __init__(self, level_number):
-        self.NAME += str(level_number)  # A correct name is needed for initialization
+        self.TYPE += str(level_number)  # A correct name is needed for initialization
         super(Background, self).__init__()
         self.sprite = pygame.transform.scale(self.sprite, (WINDOW_WIDTH, WINDOW_HEIGHT))
 
@@ -44,10 +44,10 @@ class Background(GraphicsComponent):
 # todo: enable sprite base meters
 class Meter(GraphicsComponent):
     """meters which display game state"""
-    NAME = 'Meter'
+    TYPE = 'Meter'
 
     def __init__(self, update_function, pos):
-        super(Player, self).__init__(pos, self.NAME)
+        super(Player, self).__init__(pos, self.TYPE)
         self.update_function = update_function
         self.value = 0
 
@@ -58,7 +58,7 @@ class Meter(GraphicsComponent):
 # the main player class
 class Player(GraphicsComponent):
     """"The active player"""
-    NAME = 'Player'
+    TYPE = 'Player'
 
     def __init__(self, pos):
         super(Player, self).__init__(pos)
@@ -83,12 +83,12 @@ class Player(GraphicsComponent):
 # A graphical game component which mainly interacts with the player (and monsters)
 class Monster(GraphicsComponent):
     """Monster baseclass"""
-    NAME = 'Monster'
+    TYPE = 'Monster'
     def __init__(self, pos):
         super(Monster, self).__init__(pos)
 
 class TestMonster(Monster):
-    NAME = 'Testmonster'
+    TYPE = 'Testmonster'
 
     def __init__(self, pos):
         super(TestMonster, self).__init__(pos)
@@ -97,14 +97,9 @@ class TestMonster(Monster):
 # game components list
 # includes: entities, world blocks, and background
 GAME_COMPONENT_TYPES = [Player, Meter, TestMonster]
-GAME_COMPONENTS = {component.NAME : component for component in GAME_COMPONENT_TYPES}
+GAME_COMPONENTS = {component.TYPE: component for component in GAME_COMPONENT_TYPES}
 
 #
 def create_game_component(self, component_type, pos):
     return GAME_COMPONENTS[component_type](pos)
-
-def make_player(self, resources):
-    pass
-def make_monster(self, monster_type):
-    pass
 

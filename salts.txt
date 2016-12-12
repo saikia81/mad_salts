@@ -1,0 +1,15 @@
+Salt Learning Mechanics
+any time a reaction occurs, display the reaction formula
+
+
+
+[NaCl] is a common salt which in a solution reacts with almost all other salts
+
+
+
+
+
+
+resources:
+https://www.learnnext.com/nextgurukul/wiki/concept/CBSE/X/Science/Salts-and-their-Properties.htm
+https://en.wikipedia.org/wiki/Salt_%28chemistry%29#Properties

@@ -10,8 +10,14 @@
 # learning mode: let's you play freely with the chemical components
 # defender mode: is a castle defence game; the gameplay
 # story mode: crazy scientist on the run against monsters with salts
+#
+#Game mechanics Ideas
+# monster's attack eachother when they are a different color (because elitism?)
+# monster's chemical composition changes because of (a salt) reactions (and makes them susceptible to physical attacks)
+# Monster's walk towards player, possibly replace with AI
 
-import signal # SIGTERM handling
+
+import signal  # SIGTERM handling
 import sys
 from queue import *  # linear time progression; FIFO
 from time import sleep
@@ -35,30 +41,75 @@ def signal_handler(signal, frame):
 # todo: find out why SIGTERM doesn't work
 signal.signal(signal.SIGTERM, signal_handler)
 
-#Game mechanics Ideas
-# monster's attack eachother when they are a different color (because elitism?)
-# monster's chemical composition changes because of (a salt) reactions (and makes them susceptible to physical attacks)
-# Monster's walk towards player, possibly replace with AI
 
-# maybe put IO here (key events, etc)
-class IOController:
-    pass
+class EventHandler(Queue):
+    def get_event(self):
+        event = self.event_queue.get()
+
+    # adds
+    def add(self, event):
+        try:
+            print("[G] event added: {}".format(event))
+            self.put_nowait(event)
+        except Full:
+            print("[!] warning, event queue is full, event disposed: {}".format(event.TYPE))
+
+
+    def has_event(self):
+        return not self.empty()
+
+# Input (keys, mouse)
+class InputController:
+    """handles key presses and the pointer"""
+    movement_keys = {'left': (-10, 0), 'right': (10, 0), 'up': (0, -10), 'jump': (0, -10)}
+    action_keys = {'attack': AttackEvent}
+    KEYS = []
+
+    def __init__(self, event_handler):
+        self.event_handler = event_handler
+        self.active_keys = []
+
+    def move(self, id):
+        pass
+
+    def handle_key(self, id):
+        if id in self.movement_keys:
+            self.move(id)
+        elif id in self.action_keys:
+            self.event_handler.add(self.action_keys[id])
+
+    def press(self, id):
+        self.handle_key(id)
+
+    def release(self, id):
+        pass
+
+    def handle_mouse(self, id):
+        pass
+        # if event.key == K_a:  # left
+        #     player.move()
+        # if event.key == K_d:  # right
+        #     player.move()
+        # if event.key == K_w:  # up
+        #     player.move()
+        # if event.key == K_s:  # down
+        #     player.move()
+
 
 # a class which handels the initialization, resource loading, and interaction between the game components
 class Game:
     """Game component handling (incl. screen), and game loop"""
     FPS = 30
-    SOUND_RESOURCE = r''
-    GAME_EVENTS = [LoadLevelEvent]  # todo redesign event system to incorperate arguments (speed, force, etc.)
+    SOUND_RESOURCE = r''  # replace with sound per level
 
     # Init Game state
     def __init__(self):
         assert(pygame.init(), (6, 0))  # assert all pygame modules are loaded
-        self.game_event_queue = Queue()  # Game event system
-        self.clock = pygame.time.Clock()  #  ticks per second
-        self.graphics = graphics_handler # graphics controller
-        self.io_controller = IOController()
         self.init_sound()  # load a song for music
+        self.clock = pygame.time.Clock()  # ticks per second
+        self.graphics = graphics_handler  # graphics controller
+        self.game_event_handler = EventHandler()  # Game event system
+        self.input = InputController(self.game_event_handler)
         self.active_game_components = []
         #self.load_game_components()
         self.level = None
@@ -89,25 +140,25 @@ class Game:
     def add_game_event(self, event):
         try:
             print("[G] event added: {}".format(event))
-            self.game_event_queue.put_nowait(event)
+            self.game_event_handler.add(event)
         except Full:
             print("[!] warning, event queue is full, event disposed: {}".format(event.TYPE))
 
-    # todo: handle event amount proportional to the amount of events in queue, alternatively thread it
+    # handle event amount proportional to the amount of events in queue, alternatively thread it
     def handle_game_events(self):
-        if self.game_event_queue.qsize() < 10:
-            while not self.game_event_queue.empty():
-                event = self.game_event_queue.get()
+        if self.game_event_handler.qsize() < 10:
+            while not self.game_event_handler.empty():
+                event = self.game_event_handler.get()
                 event.handle()
-        elif 20 < self.game_event_queue.qsize() >= 10:
+        elif 20 < self.game_event_handler.qsize() >= 10:
             print("[!]queue is 10 items or more big")
             for _ in range(10):
-                event = self.game_event_queue.get()
+                event = self.game_event_handler.get()
                 event.handle()
         else:
             print("[!]queue seems to get big, add queue handling code")
-            while not self.game_event_queue.empty():
-                event = self.game_event_queue.get()
+            while not self.game_event_handler.empty():
+                event = self.game_event_handler.get()
                 event.handle()
 
     def handle_pygame_event(self, event):
@@ -124,24 +175,27 @@ class Game:
             # For now: key presses are handled directly from here.
             # todo: decide what keypresses do (maybe something with a physics engine)
             if event.key == K_a:  # left
-                player.rect.move(-10, 0)
+                self.input.press('left')
             if event.key == K_d:  # right
-                player.rect.move(10, 0)
+                self.input.press('right')
             if event.key == K_w:  # up
-                player.rect.move(0, 10)
+                self.input.press('up')
             if event.key == K_s:  # down
-                player.rect.move(0, -10)
+                self.input.press('down')
+            if event.key == K_SPACE:  # down
+                self.input.press('jump')
             print('player moved: {}'.format(str((player.rect.x, player.rect.y))))
         elif event.type == KEYUP:  # something to handle seperate key pressing and releasing
-            # if event.key == K_a:  # left
-            #     player.move()
-            # if event.key == K_d:  # right
-            #     player.move()
-            # if event.key == K_w:  # up
-            #     player.move()
-            # if event.key == K_s:  # down
-            #     player.move()
-            pass
+            if event.key == K_a:  # left
+                self.input.release('left')
+            if event.key == K_d:  # right
+                self.input.release('right')
+            if event.key == K_w:  # up
+                self.input.release('up')
+            if event.key == K_s:  # down
+                self.input.release('down')
+            if event.key == K_SPACE:  # down
+                self.input.release('jump')
         # mouse handling
         elif event.type == MOUSEBUTTONDOWN:
             self.add_game_event(AttackEvent())
@@ -168,13 +222,13 @@ class Game:
 
             # graphics processing
             #self.graphics.blit_test()
-            self.level.display()
+            if self.level is not None:
+                self.level.display()
             self.graphics.update_dirty_rects()
 
             # game state
             # update
-            if self.level is not None:
-                self.level.update()
+            self.level.update()
 
             for component in self.active_game_components:
                 component.update()
