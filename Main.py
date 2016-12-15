@@ -19,22 +19,21 @@
 
 import signal  # SIGTERM handling
 import sys
+import time
 from queue import *  # linear time progression; FIFO
-from time import sleep
 
 from pygame.locals import *
 
 from Events import *
 from Game_components import *
 from Graphics import graphics_handler
-from Levels import level_builder
 
 
 #SIGTERM (and any other signal, handling)
 # should make the game end a little graceful
 def signal_handler(signal, frame):
     print('Signal: {}'.format(signal))
-    sleep(1)
+    time.sleep(1)
     pygame.quit()
     sys.exit(0)
 
@@ -49,34 +48,55 @@ class EventHandler(Queue):
     # adds
     def add(self, event):
         try:
-            print("[G] event added: {}".format(event))
+            print("[G] event added: {}".format(event.TYPE))
             self.put_nowait(event)
         except Full:
             print("[!] warning, event queue is full, event disposed: {}".format(event.TYPE))
-
 
     def has_event(self):
         return not self.empty()
 
 # Input (keys, mouse)
-class InputController:
+class InputHandler:
     """handles key presses and the pointer"""
-    movement_keys = {'left': (-10, 0), 'right': (10, 0), 'up': (0, -10), 'jump': (0, -10)}
+    movement_keys = ['left', 'right', 'up', 'jump']
     action_keys = {'attack': AttackEvent}
     KEYS = []
 
     def __init__(self, event_handler):
         self.event_handler = event_handler
         self.active_keys = []
+        self.player = None
 
-    def move(self, id):
-        pass
+    def set_player(self, player):
+        if isinstance(player, Player):
+            self.player = player
 
-    def handle_key(self, id):
-        if id in self.movement_keys:
-            self.move(id)
-        elif id in self.action_keys:
-            self.event_handler.add(self.action_keys[id])
+    # player input handling
+    # generates a stop move event
+    def move(self, movement):
+        if self.player is not None:
+            self.event_handler.add(MoveEvent(player=self.player, movement=movement))
+        else:
+            print("[IO] Event handled while no player selected, event discarded!")
+
+    # generates a stop move event
+    def stop_move(self, movement):
+        if self.player is not None:
+            self.event_handler.add(StopMoveEvent(player=self.player, movement=movement))
+        else:
+            print("[IO] Event handled while no player selected, event discarded!")
+
+    # key group handling
+    # Every key group has a relevant function
+    def handle_key(self, id, key_event_type = None):
+        if self.player is not None:
+            if id in self.movement_keys: # player movement
+                self.move(id)
+            elif id in self.action_keys: # player actions
+                self.event_handler.add(self.action_keys[id])
+        else:
+            print("[IO] Event handled while no player selected, event discarded!")
 
     def press(self, id):
         self.handle_key(id)
@@ -95,34 +115,68 @@ class InputController:
         # if event.key == K_s:  # down
         #     player.move()
 
+    def handle_pygame_event(self, event):
+        if event == pygame.QUIT:
+            Game.de_init()
+        # keypress handling
+        elif event.type == KEYDOWN:
+            if event.key == K_ESCAPE:
+                Game.de_init()
+            # todo: decide what keypresses do (maybe something with a physics engine)
+            if event.key == K_a:  # left
+                self.move('left')
+            if event.key == K_d:  # right
+                self.move('right')
+            if event.key == K_w:  # up
+                self.move('up')
+            if event.key == K_s:  # down
+                self.move('down')
+            if event.key == K_SPACE:  # down
+                self.move('jump')
+
+        elif event.type == KEYUP:  # something to handle seperate key pressing and releasing
+            if event.key == K_a:  # left
+                self.stop_move('left')
+            if event.key == K_d:  # right
+                self.stop_move('right')
+            if event.key == K_w:  # up
+                self.stop_move('up')
+            if event.key == K_s:  # down
+                self.stop_move('down')
+            if event.key == K_SPACE:  # down
+                self.stop_move('jump')
+        # mouse handling
+        elif event.type == MOUSEBUTTONDOWN:
+            self.event_handler.add(AttackEvent(attacker=self.player, pos=event.pos))
+
 
 # a class which handels the initialization, resource loading, and interaction between the game components
 class Game:
     """Game component handling (incl. screen), and game loop"""
     FPS = 30
-    SOUND_RESOURCE = r''  # replace with sound per level
+    SOUND_RESOURCE = r''  # todo: replace with sound per level
 
     # Init Game state
     def __init__(self):
         assert(pygame.init(), (6, 0))  # assert all pygame modules are loaded
         self.init_sound()  # load a song for music
-        self.clock = pygame.time.Clock()  # ticks per second
+        self.clock = pygame.time.Clock()  # for frame control; time
         self.graphics = graphics_handler  # graphics controller
         self.game_event_handler = EventHandler()  # Game event system
-        self.input = InputController(self.game_event_handler)
-        self.active_game_components = []
+        self.input = InputHandler(self.game_event_handler)  # keyboard, and mouse input
+        self.active_game_components = []  # can be used to hold all on-screen game components for optimization
         #self.load_game_components()
         self.level = None
 
     def load_resources(self):
         self.init_sound()
-        if self.show_fps:
+        if self.show_fps:  # adds a fps meter to the Game state active_game_components list
             self.active_game_components.append(Meter(self.clock.get_fps, (30, 40)))
 
     # save, and unload game
-    def de_init(self):
+    @staticmethod
+    def de_init():
         pygame.quit()
-        self.running = False
         sys.exit()
 
     # load a song, ready for playing
@@ -133,13 +187,13 @@ class Game:
         except pygame.error:
             print("[!]Sound didn't load!")
 
-    def init_level(self, level_number):
-        level_builder(level_number, self.graphics.resources)
+    def init_level(self):
+        self.add_game_event(LoadLevelEvent(level=0, game_state=self))  # build, and load level
+
 
     # Event system
     def add_game_event(self, event):
         try:
-            print("[G] event added: {}".format(event))
             self.game_event_handler.add(event)
         except Full:
             print("[!] warning, event queue is full, event disposed: {}".format(event.TYPE))
@@ -161,45 +215,6 @@ class Game:
                 event = self.game_event_handler.get()
                 event.handle()
 
-    def handle_pygame_event(self, event):
-        if self.level is not None:
-            player = self.level.static_game_components['player']
-        else:
-            return
-        if event == pygame.QUIT:
-            self.de_init()
-        # keypress handling
-        elif event.type == KEYDOWN:
-            if event.key == K_ESCAPE:
-                self.de_init()
-            # For now: key presses are handled directly from here.
-            # todo: decide what keypresses do (maybe something with a physics engine)
-            if event.key == K_a:  # left
-                self.input.press('left')
-            if event.key == K_d:  # right
-                self.input.press('right')
-            if event.key == K_w:  # up
-                self.input.press('up')
-            if event.key == K_s:  # down
-                self.input.press('down')
-            if event.key == K_SPACE:  # down
-                self.input.press('jump')
-            print('player moved: {}'.format(str((player.rect.x, player.rect.y))))
-        elif event.type == KEYUP:  # something to handle seperate key pressing and releasing
-            if event.key == K_a:  # left
-                self.input.release('left')
-            if event.key == K_d:  # right
-                self.input.release('right')
-            if event.key == K_w:  # up
-                self.input.release('up')
-            if event.key == K_s:  # down
-                self.input.release('down')
-            if event.key == K_SPACE:  # down
-                self.input.release('jump')
-        # mouse handling
-        elif event.type == MOUSEBUTTONDOWN:
-            self.add_game_event(AttackEvent())
-
     # start menu, currently sends you directly into the game
     def start_menu(self):
         self.start_game()
@@ -211,30 +226,37 @@ class Game:
             self.music.play()
 
         self.running = True
+        self.init_level()
         loop_counter = 0
-        self.add_game_event(LoadLevelEvent(level=0, game_state=self))
+        dt = 0
         while self.running:
             # game mechanics
             events = [event for event in pygame.event.get()]
             for event in events:
-                self.handle_pygame_event(event)
+                self.input.handle_pygame_event(event)
             self.handle_game_events()  # handles game component events
 
             # graphics processing
-            #self.graphics.blit_test()
             if self.level is not None:
                 self.level.display()
             self.graphics.update_dirty_rects()
 
             # game state
-            # update
-            self.level.update()
-
+            # update game components with delta time
+            self.level.update(dt)  # 1/100 seconds
             for component in self.active_game_components:
-                component.update()
+                component.update(dt)
 
-            self.last_update = self.clock.tick(Game.FPS)
-            loop_counter += 1 # how many loops have been made
+            # time betweem frames
+            dt = self.clock.tick(Game.FPS)  # returns the elapsed time in milliseconds
+
+            # FPS
+            loop_counter += 1  # how many loops have been made
+            if not loop_counter % 10:
+                time_per_frame = dt
+                frames_per_time = 1 / dt
+                loop_counter = 0
+                print("[G] TPF: {}\t FPS: {}".format(time_per_frame/1000, frames_per_time))
 
 def main():
     game = Game()

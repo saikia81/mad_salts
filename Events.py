@@ -16,6 +16,9 @@ class GameEvent:
         self.data = data
         print("[EV] added: {}".format(self.TYPE))
 
+    def __del__(self):
+        print("[EV] handled: {}".format(self.TYPE))
+
     def handle(self):
         raise NotImplementedError("Please implement this method")
 
@@ -24,13 +27,12 @@ class LoadLevelEvent(GameEvent):
     TYPE = 'LoadLevel'
     def handle(self):
         # create new level, and add it to the game state
-        self.data['game_state'].level = Levels.level_builder(self.data['level'])
-        print("[EV] handled: {}".format(self.TYPE))
+        self.data['game_state'].level = Levels.level_builder(self.data['level'] ,self.data['game_state'])
 
 class AttackEvent(GameEvent):
     TYPE = 'ATTACK'
     def handle(self):
-        print('attack!')
+        pass # create vial with appropriate speed, and position
 
 class AddTextEvent(GameEvent):
     TYPE = 'AddText'
@@ -45,9 +47,9 @@ class MoveEvent(GameEvent):
 
 # probably not needed
 class StopMoveEvent(GameEvent):
-    TYPE = 'STOPMOVE'
+    TYPE = 'StopMove'
     def handle(self):
-        self.data['player'].move(self.data['movement'])
+        self.data['player'].stop_move(self.data['movement'])
 
 
 event_types = {'LoadLevelEvent': LoadLevelEvent, 'AttackEvent': AttackEvent}
