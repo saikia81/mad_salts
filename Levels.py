@@ -7,7 +7,7 @@ class Level:
     """A class with level resources, and helper functions"""
     def __init__(self, level, background, player, world_components):
         # a dictionary with all level related game components
-        self.static_game_components = {'background': background}
+        self.static_game_components = {} # {'background': background}
         self.dynamic_game_components = {'player': [player,], 'world_component': world_components, 'NPC': []}
         self.level = level
         self.camera = Camera(simple_camera, 480, 320)
@@ -64,7 +64,7 @@ class Level:
 
 # needs to get the active game resources as argument, with which it will init the level graphics
 # the player will also be created
-def level_builder(level, game_state):
+def level_builder(level):
     #level specification
     background = Background(level)  # level is needed to find the matching background
     world_components = []  # additional dynamic blocks and other level components

@@ -98,14 +98,15 @@ class Player(MassEntity):
     def init_sprite(self):
         self.sprite = pygame.transform.scale(self.sprite, (47, 30)).convert_alpha()
 
-    # moves the player, this changes the state of movement
+    # moves the player, this changes the state of placement
+    # physics included (relies on delta time)
     def update(self, dt):
         # move left, and right
         if -self.X_MAX_SPEED < self.x_speed < self.X_MAX_SPEED:
+            self.x_speed += min(self.X_MAX_SPEED, self.x_accel * (dt/GAME_SPEED)) if self.direction else max(-self.X_MAX_SPEED, self.x_accel * (dt/GAME_SPEED))
             print("[d]speed change: {}".format(self.x_speed))
-            self.x_speed += self.x_accel * (dt/GAME_SPEED)
         else:
-            self.x_accel -= 1
+            self.x_accel -= self.direction
 
         if not self.y_speed >= self.Y_MAX_SPEED:
             self.y_speed += self.y_accel * (dt/GAME_SPEED)
@@ -122,9 +123,9 @@ class Player(MassEntity):
             self.x_speed = 0
             self.x_accel = 0
             if 0 >= l:
-                boundary_offset += 1
+                boundary_offset = 1
             else:
-                boundary_offset -= 1
+                boundary_offset = 1
             print("[d] boundary offset: {}".format(self.y_speed))
 
         dx, dy = self.x_speed * (dt / GAME_SPEED), self.y_speed * (dt / GAME_SPEED)
@@ -144,9 +145,10 @@ class Player(MassEntity):
         if movement == 'jump':
             self.y_accel = 10
 
-        if self.x_accel * self.direction < 0:
+        if self.x_accel * self.direction < 0:  # detects if direction has changed by negative, positive difference
             self.sprite = pygame.transform.flip(self.sprite, True, False)
 
+    # stops acceleration
     def stop_move(self, movement):
         if movement == 'right':
             if self.x_speed > 0 and self.y_accel < 0:
@@ -161,8 +163,7 @@ class Player(MassEntity):
         elif movement == 'down':
             pass
         if movement == 'jump':
-            self.y_accel = 10
-
+            pass
 
 # A graphical game component which mainly interacts with the player (and monsters)
 class Monster(MassEntity):

@@ -252,7 +252,7 @@ class Game:
 
             # FPS
             loop_counter += 1  # how many loops have been made
-            if not loop_counter % 10:
+            if not loop_counter % 10:  # print and start over every 10 frames
                 time_per_frame = dt
                 frames_per_time = 1 / dt
                 loop_counter = 0
