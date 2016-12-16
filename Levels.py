@@ -64,7 +64,7 @@ class Level:
 
 # needs to get the active game resources as argument, with which it will init the level graphics
 # the player will also be created
-def level_builder(level):
+def level_builder(level, game_state):
     #level specification
     background = Background(level)  # level is needed to find the matching background
     world_components = []  # additional dynamic blocks and other level components
