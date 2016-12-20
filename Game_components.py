@@ -181,6 +181,8 @@ class Player(PhysicsEntity):
     def update(self, dt):
         self.movement_pysics(dt)
 
+    def attack(self, pos):
+        pass  # do something
 
     def stay_on_the_ground(self, dt):
         if self.ground is None:
