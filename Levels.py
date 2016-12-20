@@ -26,6 +26,10 @@ class Level:
             pass
         return self.__getattribute__(name)
 
+    # find player ground
+    def find_player_ground(self):
+        pass #x = self.player.rect.x
+
     # game component management
     def add_NPC(self, npc):
         self.add_game_component('NPC', npc)
@@ -34,8 +38,7 @@ class Level:
         self.add_game_component('world_component', world_component)
 
     # when adding a component to a level, this methid should be used exclusively
-    def add_game_component(self, component_type, component):
-        self.dynamic_components[component_type].append(component)
+    def add_game_component(self, component):
         self.components.append(component)
 
     def del_game_component(self, component_type, component):
@@ -70,8 +73,8 @@ class Level:
 class StaticLevelComponent(GraphicsComponent):
     """Base class for all static Level Components"""
 
-    def __init__(self, resource_name, pos, size):
-        if len(size) != 2:
+    def __init__(self, resource_name, pos, size=None):
+        if size is not None and len(size) != 2:
             raise ValueError("Size has to be a tuple of length 2!")
         self.TYPE = resource_name  # A correct name is needed for initialization
         super(StaticLevelComponent, self).__init__(pos, size)
@@ -84,20 +87,21 @@ class Background(StaticLevelComponent):
     """Background"""
     TYPE = 'Background'
 
-
-class ForeGround(GraphicsComponent):
+class ForeGround(StaticLevelComponent):
     """ForeGround"""
     TYPE = 'Foreground'
 
-
-class ground(GraphicsComponent):
+class Ground(StaticLevelComponent):
     """ground"""
     TYPE = 'ground'
 
+    def __init__(self, resource_name, pos, size=None):
+        super(Ground, self).__init__(resource_name, pos, size=None)
 
-# needs to get the active game resources as argument, with which it will init the level graphics
-# the player will also be created
-def level_builder(level, game_state):
+
+# level builder; calls level init
+# component order matters!
+def level_builder(level):
     world_component_types = ['Background', 'Foreground', 'Ground']
     # any component that is part of the world should be added to world_components list
     static_level_components = []  # additional dynamic blocks and other level components
@@ -108,19 +112,17 @@ def level_builder(level, game_state):
         player = Player((200, 500))  # player and it's starting position in the level
 
         static_level_components.append(Background('background0', (0, 0), (WINDOW_WIDTH, WINDOW_HEIGHT)))
-        # static_level_components += Background('forest_background_p1', 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+        static_level_components.append(Ground('forest_ground', (0, 0)))
 
         # dynamic_level_components += None
     elif level == 1:
+        raise NotImplementedError("Level value hasn't been implemented!")
         level_name = ''
         player = Player((0, 0))
 
-        # static_level_components += None
-        # dynamic_level_components += None
-    elif level == 2:
-        raise NotImplementedError("Level value hasn't been implemented!")
+        # static_level_components
+        # dynamic_level_components
     else:
         raise NotImplementedError("Level value hasn't been implemented!")
 
-    game_state.input.set_player(player)
     return Level(level_name, player, static_level_components, dynamic_level_components)

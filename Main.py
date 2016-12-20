@@ -27,10 +27,9 @@ from pygame.locals import *
 from Events import *
 from Game_components import *
 from Graphics import controller as graphics_controller
+from Levels import Ground
 
 
-# SIGTERM (and any other signal, handling)
-# should make the game end a little graceful
 def signal_handler(signal, frame):
     print('Signal: {}'.format(signal))
     time.sleep(1)
@@ -107,14 +106,6 @@ class InputHandler:
 
     def handle_mouse(self, id):
         pass
-        # if event.key == K_a:  # left
-        #     player.move()
-        # if event.key == K_d:  # right
-        #     player.move()
-        # if event.key == K_w:  # up
-        #     player.move()
-        # if event.key == K_s:  # down
-        #     player.move()
 
     def handle_pygame_event(self, event):
         if event == pygame.QUIT:
@@ -197,7 +188,7 @@ class Game:
         try:
             self.game_event_handler.add(event)
         except Full:
-            print("[!] warning, event queue is full, event disposed: {}".format(event.TYPE))
+            print("[Ga] Event queue is full, event disposed: {}".format(event.TYPE))
 
     # handle event amount proportional to the amount of events in queue, alternatively thread it
     def handle_game_events(self):
@@ -206,7 +197,7 @@ class Game:
                 event = self.game_event_handler.get()
                 event.handle()
         elif 20 < self.game_event_handler.qsize() >= 10:
-            print("[!]queue is 10 items or more big")
+            print("[!]queue is 10 items or more large")
             for _ in range(10):
                 event = self.game_event_handler.get()
                 event.handle()
@@ -219,6 +210,17 @@ class Game:
     # start menu, currently sends you directly into the game
     def start_menu(self):
         self.start_game()
+
+    # todo: figure out collision in pygame
+    # collision detection per entity that the function is called with
+    def detect_collisions(self, entity):
+        for component1 in self.level.components:
+            if pygame.sprite.collide_rect(component, component1):
+                if type(component1) == Ground:
+                    self.add_game_event(GroundCollissionEvent(entity=entity, ground=component1))
+                    print("[CD] ground collision!")
+                else:
+                    print("[CD] unknown collision: {}".format(component1))
 
     # load and start game
     def start_game(self):

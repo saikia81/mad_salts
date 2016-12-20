@@ -20,6 +20,13 @@ class GameEvent:
         self.data = data
         print("[EV] added: {}".format(self.TYPE))
 
+    def __getattr__(self, name):
+        try:
+            return self.data[name]
+        except:
+            pass
+        return self.__getattribute__(name)
+
     def __del__(self):
         print("[EV] handled: {}".format(self.TYPE))
 
@@ -31,30 +38,35 @@ class LoadLevelEvent(GameEvent):
     TYPE = 'LoadLevel'
     def handle(self):
         # create new level, and add it to the game state
-        self.data['game_state'].level = Levels.level_builder(self.data['level'], self.data['game_state'])
+        self.game_state.level = Levels.level_builder(self.data['level'])  # new level
+        self.game_state.input.set_player(self.game_state.level.player)  # adds initialized player to input handler
 
 class AttackEvent(GameEvent):
     TYPE = 'ATTACK'
     def handle(self):
-        pass # create vial with appropriate speed, and position
+        self.attacker.attack(self.pos)
 
 class AddTextEvent(GameEvent):
     TYPE = 'AddText'
     def handle(self):
-        Graphics.graphics_controller.make_text(self.data['text'])
+        self.level.add_game_component(Graphics.graphics_controller.make_text(self.data['text'], self.pos))
 
 # movement events are a bad design idea, but right now necessary
 class MoveEvent(GameEvent):
     TYPE = 'MOVE'
     def handle(self):
-        self.data['player'].move(self.data['movement'])
+        self.player.move(self.movement)
 
 # probably not needed
 class StopMoveEvent(GameEvent):
     TYPE = 'StopMove'
     def handle(self):
-        self.data['player'].stop_move(self.data['movement'])
+        self.player.stop_move(self.movement)
 
+class GroundCollissionEvent(GameEvent):
+    TYPE = 'GroundCollission'
+    def handle(self):
+        self.entity.ground = self.ground
 
 event_types = {'LoadLevelEvent': LoadLevelEvent, 'AttackEvent': AttackEvent}
 
