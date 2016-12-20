@@ -1,26 +1,34 @@
 import pygame
 
-import Graphics
-from Graphics import WINDOW_WIDTH, WINDOW_HEIGHT
+from Graphics import controller as graphics_controller
+
+WINDOW_WIDTH, WINDOW_HEIGHT = graphics_controller.WINDOW_WIDTH, graphics_controller.WINDOW_HEIGHT
 
 GAME_SPEED = 0.033  # seconds per frame
-GRAVITY = 10
+GRAVITY = 3
+
 
 class GraphicsComponent(pygame.sprite.Sprite):
     """Base class for all Graphical Game Components"""
 
     COMPONENT_ID = 0
 
-    def __init__(self, pos=(0, 0)):
+    def __init__(self, pos, size=None):
         self.COMPONENT_ID = self.__class__.COMPONENT_ID
         self.__class__.COMPONENT_ID += 1
         pygame.sprite.Sprite.__init__(self)
-        self.graphics_handler = Graphics.graphics_handler
-        self.sprite = self.graphics_handler.resources[self.TYPE.lower()]
-        self.init_sprite()
-        self.dimensions = self.sprite.get_size()
-        self.rect = pygame.Rect(pos, self.dimensions)
+        self.graphics_controller = graphics_controller
+        self.sprite = self.graphics_controller.resources[self.TYPE.lower()]
+        if size is None or type(size) is not tuple:
+            self.init_sprite()
+            self.size = self.sprite.get_size()  # use sprite size if no size is specified
+        else:
+            self.size = size
+            self.init_sprite()
+        self.rect = pygame.Rect(pos, self.size)
+        print("[GC] New Game Component '{}', ID: {}".format(self.TYPE, self.COMPONENT_ID))
 
+    # add logging code
     def __del__(self):
         pass
 
@@ -30,28 +38,16 @@ class GraphicsComponent(pygame.sprite.Sprite):
 
     # blit the object
     def blit(self, direct_display=False):
-        self.graphics_handler.blit(self.sprite, self.rect)
+        self.graphics_controller.blit(self.sprite, self.rect)
         if direct_display:
-            self.graphics_handler.update()
+            self.graphics_controller.update()
 
     # abstract
     def update(self, dt):
         raise NotImplementedError("Please Implement this method")
 
     def display(self):
-        self.graphics_handler.blit(self.sprite, self.rect)
-
-
-class Background(GraphicsComponent):
-    """Background"""
-    TYPE = 'Background' # this shouldn't be used, the name should have it's number as suffix
-
-    def __init__(self, level_number):
-        self.TYPE += str(level_number)  # A correct name is needed for initialization
-        super(Background, self).__init__()
-
-    def init_sprite(self):
-        self.sprite = pygame.transform.smoothscale(self.sprite, (WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.graphics_controller.blit(self.sprite, self.rect)
 
 
 # text meters on screen (for debugging)
@@ -68,7 +64,7 @@ class Meter(GraphicsComponent):
     def update(self, dt):
         self.value = self.update_function()
 
-    # todo: change design, or keep doing this for non-sprite components
+    # todo: decide: change design, or keep doing this for non-sprite components
     def init_sprite(self):
         pass  # has no sprite
 
@@ -76,19 +72,22 @@ class Meter(GraphicsComponent):
         pass
 
 
-class MassEntity(GraphicsComponent):
+class PhysicsEntity(GraphicsComponent):
+    """Base class for all physics affected entities"""
     X_MAX_SPEED = 10  # 10 pixels per second
     Y_MAX_SPEED = 10  # 10 pixels per second
+
     def __init__(self, pos):
-        super(MassEntity, self).__init__(pos)
+        super(PhysicsEntity, self).__init__(pos)
         self.direction = 1  # negative: left (+x), positive: right (-x)
         self.x_speed = 0
         self.y_speed = 0
         self.x_accel = 0
         self.y_accel = 0
 
+
 # the main player class
-class Player(MassEntity):
+class Player(PhysicsEntity):
     """"The active player"""
     TYPE = 'Player'
 
@@ -96,25 +95,39 @@ class Player(MassEntity):
         super(Player, self).__init__(pos)
 
     def init_sprite(self):
-        self.sprite = pygame.transform.scale(self.sprite, (47, 30)).convert_alpha()
+        self.sprite = pygame.transform.flip(pygame.transform.scale(self.sprite, (47, 30)).convert_alpha(), True, False)
 
-    # moves the player, this changes the state of placement
-    # physics included (relies on delta time)
+    # moves the entity, this changes the rectangle
+    # physics included (relies on delta time to determine)
     def update(self, dt):
+        try:
+            # the amount of time that has passed in the game relative to real time
+            game_time = 1 / dt / GAME_SPEED  # the time that has passed in game is the: time_per_frame / game_speed_per_frame
+        except ZeroDivisionError as ex:
+            print('dt: {}'.format(dt))  # todo: debug how it's possible for 'dt' to be 0
+            game_time = 0  # temporary fix
+
         # move left, and right
         if -self.X_MAX_SPEED < self.x_speed < self.X_MAX_SPEED:
-            self.x_speed += min(self.X_MAX_SPEED, self.x_accel * (dt/GAME_SPEED)) if self.direction else max(-self.X_MAX_SPEED, self.x_accel * (dt/GAME_SPEED))
-            print("[d]speed change: {}".format(self.x_speed))
+            if self.direction:  # if player direction is right
+                speed_change = max(-self.X_MAX_SPEED, self.x_accel * game_time - self.x_speed)
+            else:  # player direction is left
+                speed_change = min(self.X_MAX_SPEED, self.x_accel * game_time + self.x_speed)
+            # self.x_speed += max(-self.X_MAX_SPEED, self.x_accel * game_time if self.direction else -min(self.X_MAX_SPEED, self.x_accel * (dt/GAME_SPEED))
+            self.x_speed += speed_change
+            print("[d]dt: {} \tspeed change: {}".format(dt, speed_change))  # debug code
         else:
             self.x_accel -= self.direction
 
         if not self.y_speed >= self.Y_MAX_SPEED:
-            self.y_speed += self.y_accel * (dt/GAME_SPEED)
+            self.y_speed += self.y_accel * (game_time)
+        else:
+            self.y_accel += 1
 
         # max jump height
         if self.y_speed >= 6:
             print("[d] jump accel on turn around: {}".format(self.y_accel))
-            self.y_accel = -GRAVITY
+            self.y_accel = GRAVITY
 
         # level edge collision
         l, t, _, _ = self.rect
@@ -128,16 +141,16 @@ class Player(MassEntity):
                 boundary_offset = 1
             print("[d] boundary offset: {}".format(self.y_speed))
 
-        dx, dy = self.x_speed * (dt / GAME_SPEED), self.y_speed * (dt / GAME_SPEED)
+        dx, dy = self.x_speed * (game_time), self.y_speed * (game_time)
         self.rect.move_ip(dx + boundary_offset, dy)
         print("[PL] speed: {} |accel: {}".format(self.x_speed, self.x_accel))
 
     # when no key press is registered anymore the event system should notify the player it's standing still
     def move(self, movement):
         if movement == 'right':
-            self.x_accel = 2
+            self.x_accel = 4
         elif movement == 'left':
-            self.x_accel = -2
+            self.x_accel = -4
         if movement == 'up':
             pass
         elif movement == 'down':
@@ -145,13 +158,15 @@ class Player(MassEntity):
         if movement == 'jump':
             self.y_accel = 10
 
-        if self.x_accel * self.direction < 0:  # detects if direction has changed by negative, positive difference
+        if self.x_accel * self.direction < 0:  # detects if direction has changed by the negative/positive difference
+            print("[D] accel:{} \tdirect: {}".format(self.x_accel, self.direction))
             self.sprite = pygame.transform.flip(self.sprite, True, False)
+            self.direction *= -1
 
     # stops acceleration
     def stop_move(self, movement):
         if movement == 'right':
-            if self.x_speed > 0 and self.y_accel < 0:
+            if self.x_speed > 0 and self.x_accel > 0:
                 self.x_speed = 0
                 self.x_accel = 0
         elif movement == 'left':
@@ -165,15 +180,18 @@ class Player(MassEntity):
         if movement == 'jump':
             pass
 
+
 # A graphical game component which mainly interacts with the player (and monsters)
-class Monster(MassEntity):
+class Monster(PhysicsEntity):
     """Monster baseclass"""
     TYPE = 'Monster'
+
     def __init__(self, pos):
         super(Monster, self).__init__(pos)
 
     def init_sprite(self):
         self.sprite = self.sprite.convert_alpha()
+
 
 class TestMonster(Monster):
     TYPE = 'Testmonster'
@@ -184,12 +202,13 @@ class TestMonster(Monster):
     def update(self, dt):
         pass
 
+
 # game components list
 # includes: entities, world blocks, and background
 GAME_COMPONENT_TYPES = [Player, Meter, TestMonster]
 GAME_COMPONENTS = {component.TYPE: component for component in GAME_COMPONENT_TYPES}
 
+
 #
 def create_game_component(self, component_type, pos):
     return GAME_COMPONENTS[component_type](pos)
-

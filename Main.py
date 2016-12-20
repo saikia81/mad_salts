@@ -2,17 +2,17 @@
 
 # A serious 2.5D game in Python3 using Pygame.
 #
-# educational value may vary between:
+# Educational value may vary between:
 # 1. The dangers, and basic properties of chemical combinations
 # 2. salt memorising
 #
-#mode ideas
+# mode ideas
 # learning mode: let's you play freely with the chemical components
 # defender mode: is a castle defence game; the gameplay
 # story mode: crazy scientist on the run against monsters with salts
 #
-#Game mechanics Ideas
-# monster's attack eachother when they are a different color (because elitism?)
+# Game mechanics Ideas
+# monster's attack each other when they are a different color (because elitism?)
 # monster's chemical composition changes because of (a salt) reactions (and makes them susceptible to physical attacks)
 # Monster's walk towards player, possibly replace with AI
 
@@ -26,10 +26,10 @@ from pygame.locals import *
 
 from Events import *
 from Game_components import *
-from Graphics import graphics_handler
+from Graphics import controller as graphics_controller
 
 
-#SIGTERM (and any other signal, handling)
+# SIGTERM (and any other signal, handling)
 # should make the game end a little graceful
 def signal_handler(signal, frame):
     print('Signal: {}'.format(signal))
@@ -37,13 +37,13 @@ def signal_handler(signal, frame):
     pygame.quit()
     sys.exit(0)
 
-# todo: find out why SIGTERM doesn't work
-signal.signal(signal.SIGTERM, signal_handler)
+
+signal.signal(signal.SIGTERM, signal_handler)  # todo: find out why SIGTERM doesn't work
 
 
 class EventHandler(Queue):
-    def get_event(self):
-        event = self.event_queue.get()
+    def get_event(self):  # don't use this, use Queue.get
+        return self.event_queue.get()
 
     # adds
     def add(self, event):
@@ -55,6 +55,7 @@ class EventHandler(Queue):
 
     def has_event(self):
         return not self.empty()
+
 
 # Input (keys, mouse)
 class InputHandler:
@@ -89,11 +90,11 @@ class InputHandler:
 
     # key group handling
     # Every key group has a relevant function
-    def handle_key(self, id, key_event_type = None):
+    def handle_key(self, id, key_event_type=None):
         if self.player is not None:
-            if id in self.movement_keys: # player movement
+            if id in self.movement_keys:  # player movement
                 self.move(id)
-            elif id in self.action_keys: # player actions
+            elif id in self.action_keys:  # player actions
                 self.event_handler.add(self.action_keys[id])
         else:
             print("[IO] Event handled while no player selected, event discarded!")
@@ -133,7 +134,7 @@ class InputHandler:
                 self.move('down')
             if event.key == K_SPACE:  # down
                 self.move('jump')
-
+        # when a key is released, in some casescreate an event
         elif event.type == KEYUP:  # something to handle seperate key pressing and releasing
             if event.key == K_a:  # left
                 self.stop_move('left')
@@ -158,14 +159,14 @@ class Game:
 
     # Init Game state
     def __init__(self):
-        assert(pygame.init(), (6, 0))  # assert all pygame modules are loaded
+        assert (pygame.init(), (6, 0))  # assert all pygame modules are loaded
         self.init_sound()  # load a song for music
         self.clock = pygame.time.Clock()  # for frame control; time
-        self.graphics = graphics_handler  # graphics controller
+        self.graphics = graphics_controller  # graphics controller
         self.game_event_handler = EventHandler()  # Game event system
         self.input = InputHandler(self.game_event_handler)  # keyboard, and mouse input
         self.active_game_components = []  # can be used to hold all on-screen game components for optimization
-        #self.load_game_components()
+        # self.load_game_components()
         self.level = None
 
     def load_resources(self):
@@ -177,6 +178,7 @@ class Game:
     @staticmethod
     def de_init():
         pygame.quit()
+        print("[Ga] de-init completed!")
         sys.exit()
 
     # load a song, ready for playing
@@ -189,7 +191,6 @@ class Game:
 
     def init_level(self):
         self.add_game_event(LoadLevelEvent(level=0, game_state=self))  # build, and load level
-
 
     # Event system
     def add_game_event(self, event):
@@ -231,7 +232,7 @@ class Game:
         dt = 0
         while self.running:
             # game mechanics
-            events = [event for event in pygame.event.get()]
+            events = pygame.event.get()
             for event in events:
                 self.input.handle_pygame_event(event)
             self.handle_game_events()  # handles game component events
@@ -256,11 +257,13 @@ class Game:
                 time_per_frame = dt
                 frames_per_time = 1 / dt
                 loop_counter = 0
-                print("[G] TPF: {}\t FPS: {}".format(time_per_frame/1000, frames_per_time))
+                print("[G] TPF: {}\t FPS: {}".format(time_per_frame / 1000, round(frames_per_time, 5)))
+
 
 def main():
     game = Game()
     game.start_menu()
+
 
 if __name__ == '__main__':
     try:

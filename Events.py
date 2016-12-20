@@ -9,6 +9,10 @@ import Levels
 #
 # You can delete a active game object by deleting it from the level state (
 
+# events yet to be added
+# todo: reset_player, reset_level, spawn_monster
+
+
 # game events
 class GameEvent:
     def __init__(self, **data):
@@ -27,7 +31,7 @@ class LoadLevelEvent(GameEvent):
     TYPE = 'LoadLevel'
     def handle(self):
         # create new level, and add it to the game state
-        self.data['game_state'].level = Levels.level_builder(self.data['level'] ,self.data['game_state'])
+        self.data['game_state'].level = Levels.level_builder(self.data['level'], self.data['game_state'])
 
 class AttackEvent(GameEvent):
     TYPE = 'ATTACK'
@@ -37,7 +41,7 @@ class AttackEvent(GameEvent):
 class AddTextEvent(GameEvent):
     TYPE = 'AddText'
     def handle(self):
-        Graphics.graphics_handler.make_text(self.data['text'])
+        Graphics.graphics_controller.make_text(self.data['text'])
 
 # movement events are a bad design idea, but right now necessary
 class MoveEvent(GameEvent):
