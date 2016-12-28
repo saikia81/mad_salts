@@ -66,7 +66,7 @@ class StopMoveEvent(GameEvent):
 class GroundCollissionEvent(GameEvent):
     TYPE = 'GroundCollission'
     def handle(self):
-        self.entity.ground = self.ground
+        self.entity.set_ground(self.ground)
 
 event_types = {'LoadLevelEvent': LoadLevelEvent, 'AttackEvent': AttackEvent}
 

@@ -2,7 +2,7 @@ import pygame
 
 from Graphics import controller as graphics_controller
 
-WINDOW_WIDTH, WINDOW_HEIGHT = graphics_controller.WINDOW_WIDTH, graphics_controller.WINDOW_HEIGHT
+WINDOW_WIDTH, WINDOW_HEIGHT = graphics_controller.CAMERA_WIDTH, graphics_controller.CAMERA_HEIGHT
 
 GAME_SPEED = 0.033  # seconds per frame
 GRAVITY = 3
@@ -27,26 +27,23 @@ class GraphicsComponent(pygame.sprite.Sprite):
         self.rect = pygame.Rect(pos, self.size)
         print("[GC] New Game Component '{}', ID: {}, size: ({}, {})".format(self.TYPE, self.COMPONENT_ID, *self.size))
 
-    # add logging code
+    # todo: add logging code
     def __del__(self):
-        pass
+        print("[GC] Dead Game Component '{}', ID: {}, size: ({}, {})".format(self.TYPE, self.COMPONENT_ID, *self.size))
 
     # abstract
     def init_sprite(self):
         raise NotImplementedError("Please Implement this method")
 
-    # blit the object
+    # blit the object to the active display
     def blit(self, direct_display=False):
         self.graphics_controller.blit(self.sprite, self.rect)
         if direct_display:
             self.graphics_controller.update()
 
-    # abstract
-    def update(self, dt):
-        raise NotImplementedError("Please Implement this method")
-
-    def display(self):
-        self.graphics_controller.blit(self.sprite, self.rect)
+    # display sprite onto virtual screen (inside the active display)
+    def display(self, screen):
+        self.graphics_controller.blit_to_camera(self.sprite, self.rect, screen)
 
 
 # text meters on screen (for debugging)
@@ -72,16 +69,20 @@ class Meter(GraphicsComponent):
 
 
 class PhysicsEntity(GraphicsComponent):
-    """Base class for all physics affected entities"""
-    X_MAX_SPEED = 10  # 10 pixels per second
-    Y_MAX_SPEED = 10  # 10 pixels per second
+    """Base class for all physics affected entities. Entity will be able to move ('left', 'right', 'up', and 'down'):
+    horizontally, and vertically. Every entity contains the members: x/y_accel, and x/y_speed,
+    which can be used to directly influence movement """
+
+    X_MAX_SPEED = 80  # 10 pixels per meter per second
+    Y_MAX_SPEED = 40  # (10 * meters) / seconds
 
     def __init__(self, pos):
         super(PhysicsEntity, self).__init__(pos)
         self.direction = 1  # negative: left (+x), positive: right (-x)
-        self.x_speed = 0
+        self.ground = None  # the ground object under it's feet
+        self.x_speed = 0  # m/s
         self.y_speed = 0
-        self.x_accel = 0
+        self.x_accel = 0  # m/s/s
         self.y_accel = 0
 
     # moves the entity, this changes the rectangle
@@ -104,16 +105,16 @@ class PhysicsEntity(GraphicsComponent):
             self.x_speed += speed_change
             print("[d]dt: {} \tspeed change: {}".format(dt, speed_change))  # debug code
         else:
-            self.x_accel -= self.direction
+            self.x_accel -= self.direction * 30  # deceleration constant
 
         if not self.y_speed >= self.Y_MAX_SPEED:
-            self.y_speed += self.y_accel * (game_time)
+            self.y_speed += self.y_accel * game_time
         else:
             self.y_accel += 1
 
         # max jump height
         if 0 < self.y_accel < 2:
-            print("[d] jump accel on turn around: {}".format(self.y_accel))
+            print("[d] accel on vertical turn-around: {}".format(self.y_accel))
 
         # level edge collision
         l, t, _, _ = self.rect
@@ -134,15 +135,15 @@ class PhysicsEntity(GraphicsComponent):
     # when no key press is registered anymore the event system should notify the player it's standing still
     def move(self, movement):
         if movement == 'right':
-            self.x_accel = 4
+            self.x_accel = 20
         elif movement == 'left':
-            self.x_accel = -4
+            self.x_accel = -20
         if movement == 'up':
             pass
         elif movement == 'down':
             pass
         if movement == 'jump':
-            self.y_accel = 10
+            self.y_accel = 25
 
         if self.x_accel * self.direction < 0:  # detects if direction has changed by the negative/positive difference
             print("[D] accel:{} \tdirect: {}".format(self.x_accel, self.direction))
@@ -152,20 +153,26 @@ class PhysicsEntity(GraphicsComponent):
     # stops acceleration
     def stop_move(self, movement):
         if movement == 'right':
-            if self.x_speed > 0 and self.x_accel > 0:
+            if self.x_speed > 0 or self.x_accel > 0:
                 self.x_speed = 0
                 self.x_accel = 0
         elif movement == 'left':
-            if self.x_speed < 0 and self.x_accel < 0:
+            if self.x_speed < 0 or self.x_accel < 0:
                 self.x_speed = 0
                 self.x_accel = 0
         if movement == 'up':
             pass
         elif movement == 'down':
-            pass
+            self.y_accel = 0
+            self.y_speed = 0
         if movement == 'jump':
             pass
 
+        def set_ground(self, ground):
+            """grounds the player, and stops vertical movement"""
+            self.y_accel = 0
+            self.x_accel = 0
+            self.ground = ground
 
 # the main player class
 class Player(PhysicsEntity):

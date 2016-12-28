@@ -8,25 +8,37 @@ import pygame
 
 
 class Graphics:
-    """resources, and Graphics handling"""
+    """Graphical resources, Graphics handling, and display controller"""
     # a list with all sub-resource dirs (the keys are in lower case)
     RESOURCE_DIRS = {resource.lower(): 'resources/' + resource for resource in os.listdir('resources')}
 
-    WINDOW_WIDTH = 1200
-    WINDOW_HEIGHT = 640
+    CAMERA_WIDTH = 1280
+    CAMERA_HEIGHT = 960
 
     def __init__(self):
-        pygame.font.init()
         # init display
-        self.display = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT), pygame.HWSURFACE)
+        self.display = pygame.display.set_mode((self.CAMERA_WIDTH, self.CAMERA_HEIGHT), pygame.HWSURFACE)
+        # sidescrolling camera
+        self.camera = None
         pygame.display.set_caption("Mad Salts")
         # resources
-        self.resources = {}  # holds the loaded graphical resources grouped by type (directory)
+        self.resources = {}  # holds the loaded graphical resources grouped (by directory)
         self.load_resources()  # loads all resources; file extensions are not part of the name
-        # sidescrolling camera
-        self.camera_pos = [0, 0]
-        self.camera_center_rect = None
         self.dirty_rects = []  # an updated list of rectangles that have yet to be updated on the screen
+
+    def set_camera(self, camera):
+        print("[SC] camera set: {}".format(camera))
+        self.camera = camera
+
+    def unset_camera(self):
+        self.camera = self.display
+
+    def blit_to_camera(self, sprite, rect, camera):
+        if pygame.Rect.colliderect(rect, camera.rect):
+            self.blit(sprite, pygame.Rect.clamp(rect, camera.rect))
+
+    def update_camera(self):
+        self.display.blit()
 
     # load graphics resources (sounds, and graphics)
     # doesn't do any conversion. loads as is!
@@ -34,14 +46,13 @@ class Graphics:
         """Goes through all the resource dirs, and loads the resources into a dict"""
         for resource_type in self.RESOURCE_DIRS:
             resource_dir = self.RESOURCE_DIRS[resource_type]
-
             resources = os.listdir(resource_dir)
             for resource in resources:
                 self.resources[resource[:-4]] = pygame.image.load(resource_dir + '/' + resource)
 
     # update blitted rectangles
     def update(self):
-        if self.rectangles:
+        if self.dirty_rects:
             self.update_dirty_rects()
 
     # takes a string, returns a blittable text label
@@ -62,11 +73,11 @@ class Graphics:
             pass
         pygame.display.flip()
 
-    # all rectangles that have changed on the display get blitted
+    # all rectangles that have changed on the display get updated
     def update_dirty_rects(self):
         """Updates every rectangle in game for rectangle in dirty rectangles"""
         pygame.display.update(self.dirty_rects)  # update is faster when all rectangles are passed at once
-        #  print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
+        print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
         self.dirty_rects.clear()
 
     def blit(self, sprite, rect):
@@ -78,24 +89,26 @@ class Graphics:
         # self.display.blit(self.resources['background'], (0,0))
         return self.display.blit(player.sprite, player.rect)
 
-
-class Camera(object):
+# a camera surface that can be blitted on to the display
+class Camera():
     def __init__(self, camera_func, width, height):
         self.camera_func = camera_func
-        self.state = pygame.Rect(0, 0, width, height)
+        self.rect = pygame.Rect(0, 0, width, height)
+
+    def __repr__(self):
+        x, y, w, h = self.rect
+        return "pos: " + str((x, y)) + ", size:  " + str((w, h))
 
     def apply(self, rect):
         return rect.move(self.state.topleft)
 
     def update(self, target_rect):
-        self.state = self.camera_func(self.state, target_rect)
+        self.rect = self.camera_func(self.rect, target_rect.x, target_rect.y)
 
 
-def simple_camera(camera, player):
-    l, t, _, _ = player.rect
+def simple_camera(camera, x_pos, y_pos):
     _, _, w, h = camera
-
-    return pygame.Rect(-l + WINDOW_WIDTH / 2, -t + WINDOW_HEIGHT / 2, w, h)
+    return pygame.Rect(-x_pos + Graphics.CAMERA_WIDTH / 2, -y_pos + Graphics.CAMERA_HEIGHT / 2, w, h)
 
 
 def complex_camera(camera, target_rect):
@@ -111,5 +124,5 @@ def complex_camera(camera, target_rect):
 
 
 # only one graphics engine can be initialized at the same time, for now
-# as by this only, the controller has to be imported into the namespace of the program (from Graphics import controller)
+# the controller has to be imported into the namespace of the program (from Graphics import controller)
 controller = Graphics()

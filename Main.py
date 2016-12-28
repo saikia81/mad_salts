@@ -27,7 +27,6 @@ from pygame.locals import *
 from Events import *
 from Game_components import *
 from Graphics import controller as graphics_controller
-from Levels import Ground
 
 
 def signal_handler(signal, frame):
@@ -211,16 +210,41 @@ class Game:
     def start_menu(self):
         self.start_game()
 
-    # todo: figure out collision in pygame
     # collision detection per entity that the function is called with
-    def detect_collisions(self, entity):
-        for component1 in self.level.components:
-            if pygame.sprite.collide_rect(component, component1):
-                if type(component1) == Ground:
-                    self.add_game_event(GroundCollissionEvent(entity=entity, ground=component1))
+    @staticmethod
+    def detect_collision(entity, components):
+        for component in components:
+            if pygame.sprite.collide_rect(entity, component):
+                if component:
+                    return  component
                     print("[CD] ground collision!")
                 else:
-                    print("[CD] unknown collision: {}".format(component1))
+                    print("[CD] unknown collision: {}".format(component))
+        return component
+
+    @staticmethod
+    def detect_entity_collision(entity):
+        pass
+
+    # returns None, or the first found ground
+    @staticmethod
+    def find_type_collision(entity, components, component_type):
+        for component in components:
+            if pygame.sprite.collide_rect(entity, component) and type(component) == component_type:
+                print("[CD] {} collision!".format(component_type))
+                return component
+
+    # a generator getting the next colliding component
+    @staticmethod
+    def detect_type_collision(entity, components, component_type):
+        for component in components:
+            if pygame.sprite.collide_rect(entity, component) and type(component) == component_type:
+                print("[CD] {} collision!".format(component_type))
+                yield component
+
+    def detect_collisions(self):
+        pass #
+        # for entity in self.level
 
     # load and start game
     def start_game(self):
@@ -231,7 +255,7 @@ class Game:
         self.running = True
         self.init_level()
         loop_counter = 0
-        dt = 0
+        dt = [0]*10
         while self.running:
             # game mechanics
             events = pygame.event.get()
@@ -242,24 +266,31 @@ class Game:
             # graphics processing
             if self.level is not None:
                 self.level.display()
-            self.graphics.update_dirty_rects()
+            pygame.display.update()
+
 
             # game state
+            # update game every Physics_Speed
+            self.detect_collisions()
             # update game components with delta time
-            self.level.update(dt)  # 1/100 seconds
+            self.level.update(dt[loop_counter])  # 1/100 seconds
             for component in self.active_game_components:
-                component.update(dt)
+                component.update(dt[loop_counter])
 
             # time betweem frames
-            dt = self.clock.tick(Game.FPS)  # returns the elapsed time in milliseconds
+            dt[loop_counter] = self.clock.tick(Game.FPS)  # returns the elapsed time in milliseconds
+
+            loop_counter += 1  # how many loops have been made
 
             # FPS
-            loop_counter += 1  # how many loops have been made
-            if not loop_counter % 10:  # print and start over every 10 frames
-                time_per_frame = dt
-                frames_per_time = 1 / dt
+            if loop_counter == 10:  # print and start over every 10 frames
+                time_per_frame = sum(dt)/len(dt)
+                frames_per_time = 10 / sum(dt)/len(dt)
+                print(dt)
                 loop_counter = 0
                 print("[G] TPF: {}\t FPS: {}".format(time_per_frame / 1000, round(frames_per_time, 5)))
+
+
 
 
 def main():
@@ -272,3 +303,4 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt as ex:
         print("[!] keyboard interrupt signal received!")
+
