@@ -27,6 +27,7 @@ from pygame.locals import *
 from Events import *
 from Game_components import *
 from Graphics import controller as graphics_controller
+from Levels import Ground
 
 
 def signal_handler(signal, frame):
@@ -234,16 +235,19 @@ class Game:
                 print("[CD] {} collision!".format(component_type))
                 return component
 
-    # a generator getting the next colliding component
+    # getting the next colliding component
     @staticmethod
     def detect_type_collision(entity, components, component_type):
         for component in components:
             if pygame.sprite.collide_rect(entity, component) and type(component) == component_type:
                 print("[CD] {} collision!".format(component_type))
-                yield component
+                return component
+        return None
 
     def detect_collisions(self):
-        pass #
+        ground = self.detect_type_collision(self.level.player, self.level.static_components, Ground)
+        if ground is not None:
+            self.add_game_event(GroundCollissionEvent(entity=self.level.player, ground=ground))
         # for entity in self.level
 
     # load and start game
@@ -255,40 +259,40 @@ class Game:
         self.running = True
         self.init_level()
         loop_counter = 0
-        dt = [0]*10
+        dt = [0]*15
         while self.running:
-            # game mechanics
-            events = pygame.event.get()
-            for event in events:
+            # Input mechanics
+            for event in pygame.event.get():
                 self.input.handle_pygame_event(event)
             self.handle_game_events()  # handles game component events
+
 
             # graphics processing
             if self.level is not None:
                 self.level.display()
-            pygame.display.update()
-
-
-            # game state
-            # update game every Physics_Speed
-            self.detect_collisions()
-            # update game components with delta time
-            self.level.update(dt[loop_counter])  # 1/100 seconds
-            for component in self.active_game_components:
-                component.update(dt[loop_counter])
 
             # time betweem frames
             dt[loop_counter] = self.clock.tick(Game.FPS)  # returns the elapsed time in milliseconds
+            # display after waiting for fps time passed
+            pygame.display.update()
+
+
+            # game mechanics
+            # update game components with delta time
+            self.level.update(dt[loop_counter])  # 1/100 seconds
+            # detect collisions
+            self.detect_collisions()
+            # update game copmonents that aren't part of the level
+            for component in self.active_game_components:
+                component.update(dt[loop_counter])
 
             loop_counter += 1  # how many loops have been made
-
             # FPS
-            if loop_counter == 10:  # print and start over every 10 frames
-                time_per_frame = sum(dt)/len(dt)
-                frames_per_time = 10 / sum(dt)/len(dt)
-                print(dt)
+            if loop_counter == len(dt):  # print and start over every 10 frames
+                frames_per_time = sum(dt)/len(dt)
+                time_per_frame = 10 / sum(dt)/len(dt)
+                print("[G] TPF: {}\t FPS: {}".format(time_per_frame, frames_per_time))
                 loop_counter = 0
-                print("[G] TPF: {}\t FPS: {}".format(time_per_frame / 1000, round(frames_per_time, 5)))
 
 
 

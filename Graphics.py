@@ -13,7 +13,7 @@ class Graphics:
     RESOURCE_DIRS = {resource.lower(): 'resources/' + resource for resource in os.listdir('resources')}
 
     CAMERA_WIDTH = 1280
-    CAMERA_HEIGHT = 960
+    CAMERA_HEIGHT = 720
 
     def __init__(self):
         # init display
@@ -31,14 +31,19 @@ class Graphics:
         self.camera = camera
 
     def unset_camera(self):
-        self.camera = self.display
+        self.camera = None
 
     def blit_to_camera(self, sprite, rect, camera):
-        if pygame.Rect.colliderect(rect, camera.rect):
-            self.blit(sprite, pygame.Rect.clamp(rect, camera.rect))
+        if type(camera) is Camera:
+            print(str(rect) + ", " + str(sprite)+ ", " + str(camera))
+            #if pygame.Rect.colliderect(rect, camera.rect):
+                # rect = rect.move(camera.rect.topleft)
+            self.blit(sprite, pygame.Rect.clamp(camera.rect, rect))
+        else:
+            TypeError("'camera' has to be of the type 'Camera'")
 
     def update_camera(self):
-        self.display.blit()
+        self.display.update()
 
     # load graphics resources (sounds, and graphics)
     # doesn't do any conversion. loads as is!
@@ -50,7 +55,7 @@ class Graphics:
             for resource in resources:
                 self.resources[resource[:-4]] = pygame.image.load(resource_dir + '/' + resource)
 
-    # update blitted rectangles
+    # update blitted (aka 'dirty') rectangles on every frame
     def update(self):
         if self.dirty_rects:
             self.update_dirty_rects()
@@ -80,9 +85,11 @@ class Graphics:
         print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
         self.dirty_rects.clear()
 
+    # blits image to the display surface, and adds the rectangle to a list
     def blit(self, sprite, rect):
         self.display.blit(sprite, rect)
         self.dirty_rects.append(rect)
+        # print("[GE] blitted: {}, rect: {}".format(sprite, rect))
 
     # Graphical components test
     def blit_test(self, player):
@@ -91,36 +98,40 @@ class Graphics:
 
 # a camera surface that can be blitted on to the display
 class Camera():
-    def __init__(self, camera_func, width, height):
+    def __init__(self, camera_func, target_rect, level_limit):
         self.camera_func = camera_func
-        self.rect = pygame.Rect(0, 0, width, height)
+        self.rect = pygame.Rect((0, 0), (Graphics.CAMERA_WIDTH, Graphics.CAMERA_HEIGHT))
+        self.extreme_point = level_limit
+        print('[CA] ' + repr(self.rect))
 
     def __repr__(self):
         x, y, w, h = self.rect
-        return "pos: " + str((x, y)) + ", size:  " + str((w, h))
+        return "Camera; pos: " + str((x, y)) + ", size:  " + str((w, h))
 
     def apply(self, rect):
         return rect.move(self.state.topleft)
 
     def update(self, target_rect):
-        self.rect = self.camera_func(self.rect, target_rect.x, target_rect.y)
+        self.camera_func(self, target_rect)
+        print("[CA] update: {}".format(self.rect))
 
 
-def simple_camera(camera, x_pos, y_pos):
-    _, _, w, h = camera
-    return pygame.Rect(-x_pos + Graphics.CAMERA_WIDTH / 2, -y_pos + Graphics.CAMERA_HEIGHT / 2, w, h)
+def simple_camera(camera, target_rect):
+    _, _, w, h = camera.rect
+    x, y, _, _ = target_rect
+    camera.rect = pygame.Rect(x, y, w, h)
 
 
 def complex_camera(camera, target_rect):
     l, t, _, _ = target_rect
-    _, _, w, h = camera
-    l, t, _, _ = -l + HALF_WIDTH, -t + HALF_HEIGHT, w, h
+    _, _, w, h = camera.rect
+    l, t, _, _ = -l + camera.extreme_point[0], -t + camera.extreme_point[1], w, h
 
     l = min(0, l)  # stop scrolling at the left edge
-    l = max(-(camera.width - SCREEN_WIDTH), l)  # stop scrolling at the right edge
-    t = max(-(camera.height - SCREEN_HEIGHT), t)  # stop scrolling at the bottom
+    l = max(-(camera.rect.width - camera.extreme_point[0]), l)  # stop scrolling at the right edge
+    t = max(-(camera.rect.height - camera.extreme_point[1]), t)  # stop scrolling at the bottom
     t = min(0, t)  # stop scrolling at the top
-    return pygame.Rect(l, t, w, h)
+    camera.rect = pygame.Rect(l, t, w, h)
 
 
 # only one graphics engine can be initialized at the same time, for now

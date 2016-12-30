@@ -18,7 +18,6 @@ class GameEvent:
     def __init__(self, **data):
         self.event_name = self.TYPE
         self.data = data
-        print("[EV] added: {}".format(self.TYPE))
 
     def __getattr__(self, name):
         try:
@@ -28,7 +27,7 @@ class GameEvent:
         return self.__getattribute__(name)
 
     def __del__(self):
-        print("[EV] handled: {}".format(self.TYPE))
+        print("[EV] handled: {} with data: {}".format(self.TYPE, self.data))
 
     def handle(self):
         raise NotImplementedError("Please implement this method")
