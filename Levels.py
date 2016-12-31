@@ -1,43 +1,55 @@
 from Game_components import *
-from Graphics import controller as graphics_handler
+from Graphics import controller as graphics_handler, Camera, complex_camera
+
 CAMERA_WIDTH = graphics_handler.CAMERA_WIDTH
 CAMERA_HEIGHT = graphics_handler.CAMERA_HEIGHT
 
 # make an Object file, and add all needed resources (based on folder position and file names)
 
 class Level():
-    """A class with level resources, and helper functions"""
+    """A class with image resources, and helper functions"""
 
     def __init__(self, level_name, player, static_world_components, dynamic_world_components, background=None, level_size=None):
         if level_size == None:
             level_size = background.size
         self.level_size = level_size
         self.level_name = level_name
-        # a dictionary with all level related game components
+        # a dictionary with all image related game components
         self.player = player
         self.playing_entities = []  # starts empty; is filled by monsters, and other NPC
         self.npcs = pygame.sprite.Group()
-        self.static_components = static_world_components  # level parts (e.g. background, ground)
-        self.dynamic_components = dynamic_world_components  # level parts (e.g. swings, moving objects, bullets)
-        self.components = [] + self.static_components + self.dynamic_components  # redundant list; fast requesting level component
-        # build the game depth:
-        self.level = pygame.Surface(level_size)
-        self.level_rect = self.level.get_rect()
+        self.static_components = static_world_components  # image parts (e.g. background, ground)
+        self.dynamic_components = dynamic_world_components  # image parts (e.g. swings, moving objects, bullets)
+        self.components = [] + self.static_components + self.dynamic_components  # redundant list; fast requesting image component
+        # build the static game world
+        self.image, self.rect = self.build_background(level_size, background, self.static_components)
+        self.camera = Camera(complex_camera, player.rect, level_size)  # the screen view
+        # todo: decide on who should hold the camera
+        graphics_handler.set_camera(self.camera)  # makes it possible to blit directly to the graphics handler
+
+        print("[+] image '{}' loaded".format(level_name))
+
+    @staticmethod
+    def build_background(level_size, background=None, static_components=None, colour=None):
+        if static_components is None:
+            static_components = []
+        if colour is None:
+            colour = (255, 150, 0)  # fill with ugly colour, to find empty spots
+
+        level = pygame.Surface(level_size)
+        level.fill(colour)
+        level_rect = level.get_rect()
         if background is not None:
-            self.level.blit(background.sprite, background.rect)
-        for component in static_world_components:
-            if type(component) == Background:
-                self.level.blit(component.sprite, component.rect)
-            if type(component) == Ground:
-                self.level.blit(component.sprite, component.rect)
-            if type(component) == ForeGround:
-                self.level.blit(component.sprite, component.rect)
+            level.blit(background.image.convert(), background.rect)
 
-        # todo: revise graphics handler camera setting
-        self.camera = None # Camera(complex_camera, player.rect, level_size)  # the screen view
-        #graphics_handler.set_camera(self.camera)  # makes it possible to blit directly to the graphics handler
+        for placement in [Background, Ground]:  # first blit Background, afterwards Ground
+            for component in static_components:
+                # if not self.level_rect.contains(component.rect): continue  # only if component fits in level
+                if type(component) == placement:
+                    level.blit(component.image.convert_alpha(), component.rect)
 
-        print("[+] level '{}' loaded".format(level_name))
+        print("image surface created: {}".format(level))
+        return level, level_rect
 
     def __getattr__(self, name):
         try:
@@ -55,9 +67,11 @@ class Level():
         self.add_game_component('NPC', npc)
 
     def add_world_component(self, world_component):
-        self.add_game_component('world_component', world_component)
+        self.static_components.append(world_component)
+        print(world_component.image)
+        self.image.blit(None, world_component.rect)
 
-    # when adding a component to a level, this methid should be used exclusively
+    # when adding a component to a image, this method should be used exclusively
     def add_game_component(self, component):
         self.components.append(component)
 
@@ -75,41 +89,43 @@ class Level():
         return [x for x in self.components]
 
     def update(self, dt):
-        """update all level components in the current level"""
+        """update all image components in the current image"""
+        self.player.update(dt)  # the player gets the first move
         for component in self.dynamic_components:
             component.update(dt)
+        # update camera as last
         if self.camera:
             self.camera.update(self.player.rect)
-        self.player.update(dt)
 
-    # displays all level components from back- to foreground
+    # displays all image components from back- to foreground
     def display(self):
         """calls display on every component; blitting them, and adding their rectangle to a dirty rectangles list"""
-        graphics_controller.blit(self.level, self.level_rect)
-        for component in self.static_components:
-            component.display(self.camera)
-        self.player.display()
+        # first put the background on the display
+        graphics_controller.blit(self.image, self.rect, self.camera.rect)
+        #for component in self.static_components:
+        #    component.display(self.camera)
+        self.player.display(self.camera)
         for dynamic_component in self.dynamic_components:
             dynamic_component.display(self.camera)
 
     def __del__(self):
         graphics_handler.unset_camera()
-        print("[LL] level '{}' unloaded".format(self.level_name))
+        print("[LL] image '{}' unloaded".format(self.level_name))
 
 
-# level parts handling
+# image parts handling
 class StaticLevelComponent(GraphicsComponent):
-    """Base class for all level building blocks"""
+    """Base class for all image building blocks"""
 
     def __init__(self, resource_name, pos, size=None):
-        # if the size is None; it will be determined by the sprite resolution
+        # if the size is None; it will be determined by the image resolution
         if size is not None and len(size) != 2:
             raise ValueError("Size has to be a tuple of length 2!")
-        self.TYPE = resource_name  # A correct name is needed for (sprite) init
+        self.TYPE = resource_name  # A correct name is needed for (image) init
         super(StaticLevelComponent, self).__init__(pos, size)
 
-    def init_sprite(self):
-        self.sprite = pygame.transform.smoothscale(self.sprite, self.size).convert()
+    def init_image(self):
+        self.image = pygame.transform.smoothscale(self.image, self.size)
 
 
 class Background(StaticLevelComponent):
@@ -136,7 +152,7 @@ class Ground(StaticLevelComponent):
         super(Ground, self).__init__(resource_name, pos, size=None)
 
 
-# level builder; calls level init
+# image builder; calls image init
 # component order matters!
 def level_builder(level_number):
     world_component_types = ['Background', 'Foreground', 'Ground']
@@ -146,11 +162,12 @@ def level_builder(level_number):
 
     if level_number == 0:
         level_name = 'forest'
-        level_size = (CAMERA_WIDTH*2, CAMERA_HEIGHT)
+        level_size = (CAMERA_WIDTH*2, CAMERA_HEIGHT*2)
         player = Player((50, 50))  # player and it's starting position in the level_number
-        background = Background('background3', level_size)
-
-        static_level_components.append(Ground('forest_ground_p0', (0, level_size[1] / 2)))
+        background = Background('background1', (0, 0), level_size)
+        ground_pos = 500
+        static_level_components.append(Ground('forest_ground_p0', (0, ground_pos)))
+        static_level_components.append(Ground('forest_ground_p1', (700, ground_pos)))
 
         # dynamic_level_components
     elif level_number == 1:
@@ -163,4 +180,5 @@ def level_builder(level_number):
     else:
         raise NotImplementedError("Level value hasn't been implemented!")
 
-    return Level(level_name, player, static_level_components, dynamic_level_components, background=background)
+    return Level(level_name, player, static_level_components, dynamic_level_components, background=background,
+                 level_size=level_size)

@@ -8,7 +8,7 @@ import pygame
 
 
 class Graphics:
-    """Graphical resources, Graphics handling, and display controller"""
+    """Graphical resources, Graphics handling, and display control"""
     # a list with all sub-resource dirs (the keys are in lower case)
     RESOURCE_DIRS = {resource.lower(): 'resources/' + resource for resource in os.listdir('resources')}
 
@@ -16,8 +16,10 @@ class Graphics:
     CAMERA_HEIGHT = 720
 
     def __init__(self):
+        # init modules
+        pygame.font.init()
         # init display
-        self.display = pygame.display.set_mode((self.CAMERA_WIDTH, self.CAMERA_HEIGHT), pygame.HWSURFACE)
+        self.screen = pygame.display.set_mode((self.CAMERA_WIDTH, self.CAMERA_HEIGHT), pygame.HWSURFACE)
         # sidescrolling camera
         self.camera = None
         pygame.display.set_caption("Mad Salts")
@@ -33,17 +35,22 @@ class Graphics:
     def unset_camera(self):
         self.camera = None
 
-    def blit_to_camera(self, sprite, rect, camera):
+    def blit_to_camera(self, surface, rect, camera):
+        print(str(rect) + ", " + str(surface) + ", " + str(camera))
         if type(camera) is Camera:
-            print(str(rect) + ", " + str(sprite)+ ", " + str(camera))
-            #if pygame.Rect.colliderect(rect, camera.rect):
-                # rect = rect.move(camera.rect.topleft)
-            self.blit(sprite, pygame.Rect.clamp(camera.rect, rect))
+            if camera.rect.colliderect(rect):
+                x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
+                dest = (x0 - x1, y0 - y1)
+                self.screen.blit(surface, dest)
+            else:
+                x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
+                dest = (x0 - x1, y0 - y1)
+                print("surface '{}' not on camera: '{}'".format(surface, dest))
         else:
             TypeError("'camera' has to be of the type 'Camera'")
 
     def update_camera(self):
-        self.display.update()
+        self.screen.update()
 
     # load graphics resources (sounds, and graphics)
     # doesn't do any conversion. loads as is!
@@ -53,7 +60,7 @@ class Graphics:
             resource_dir = self.RESOURCE_DIRS[resource_type]
             resources = os.listdir(resource_dir)
             for resource in resources:
-                self.resources[resource[:-4]] = pygame.image.load(resource_dir + '/' + resource)
+                self.resources[resource[:-4]] = pygame.image.load(os.path.join(resource_dir, resource))
 
     # update blitted (aka 'dirty') rectangles on every frame
     def update(self):
@@ -61,8 +68,8 @@ class Graphics:
             self.update_dirty_rects()
 
     # takes a string, returns a blittable text label
-    # word wrapping should be done manually by making multiple labels
-    def make_text(self, text, color):
+    # word wrapping should be done by making multiple labels
+    def make_text(self, text, color=(0, 0, 0)):
         if type(text) != str:
             raise TypeError("Text must be a string!")
         return self.font.render(text, 1, color)
@@ -70,10 +77,10 @@ class Graphics:
     # accepts a set of blittable objects
     # order matters! first with the background, and last is the foreground
     def display_all(self):
-        # self.display.fill(pygame.Color('black')) #  fill screen with black
+        # self.screen.fill(pygame.Color('black')) #  fill screen with black
         try:
             if self.dirty_rects.not_empty:
-                self.display.update([rect for rect in self.dirty_rects.empty()])
+                self.screen.update([rect for rect in self.dirty_rects.empty()])
         except Queue.Empty:
             pass
         pygame.display.flip()
@@ -86,15 +93,20 @@ class Graphics:
         self.dirty_rects.clear()
 
     # blits image to the display surface, and adds the rectangle to a list
-    def blit(self, sprite, rect):
-        self.display.blit(sprite, rect)
+    def blit(self, surface, rect, area=None):
+        self.screen.blit(surface, rect, area)
         self.dirty_rects.append(rect)
-        # print("[GE] blitted: {}, rect: {}".format(sprite, rect))
+        print("[GE] blitted: {}, rect: {}".format(surface, rect))
+
+    def display(self, image, rect):
+        self.blit(image, rect)
+        self.dirty_rects.append(rect)
+        raise NotImplementedError("\n !! finish this first!")
 
     # Graphical components test
     def blit_test(self, player):
-        # self.display.blit(self.resources['background'], (0,0))
-        return self.display.blit(player.sprite, player.rect)
+        # self.screen.blit(self.resources['background'], (0,0))
+        return self.screen.blit(player.sprite, player.rect)
 
 # a camera surface that can be blitted on to the display
 class Camera():
@@ -119,7 +131,8 @@ class Camera():
 def simple_camera(camera, target_rect):
     _, _, w, h = camera.rect
     x, y, _, _ = target_rect
-    camera.rect = pygame.Rect(x, y, w, h)
+
+    camera.rect = pygame.Rect(-x + Graphics.CAMERA_WIDTH / 2, -y + Graphics.CAMERA_HEIGHT / 2, w, h)
 
 
 def complex_camera(camera, target_rect):

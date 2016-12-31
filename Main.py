@@ -146,11 +146,12 @@ class InputHandler:
 class Game:
     """Game component handling (incl. screen), and game loop"""
     FPS = 30
-    SOUND_RESOURCE = r''  # todo: replace with sound per level
+    SOUND_RESOURCE = r''  # todo: replace with sound per image
 
     # Init Game state
     def __init__(self):
         assert (pygame.init(), (6, 0))  # assert all pygame modules are loaded
+        self.running = False
         self.init_sound()  # load a song for music
         self.clock = pygame.time.Clock()  # for frame control; time
         self.graphics = graphics_controller  # graphics controller
@@ -162,6 +163,7 @@ class Game:
 
     def load_resources(self):
         self.init_sound()
+        # todo: make this an Event
         if self.show_fps:  # adds a fps meter to the Game state active_game_components list
             self.active_game_components.append(Meter(self.clock.get_fps, (30, 40)))
 
@@ -181,7 +183,7 @@ class Game:
             print("[!]Sound didn't load!")
 
     def init_level(self):
-        self.add_game_event(LoadLevelEvent(level=0, game_state=self))  # build, and load level
+        self.add_game_event(LoadLevelEvent(level=0, game_state=self))  # build, and load image
 
     # Event system
     def add_game_event(self, event):
@@ -247,8 +249,8 @@ class Game:
     def detect_collisions(self):
         ground = self.detect_type_collision(self.level.player, self.level.static_components, Ground)
         if ground is not None:
-            self.add_game_event(GroundCollissionEvent(entity=self.level.player, ground=ground))
-        # for entity in self.level
+            self.add_game_event(GroundCollisionEvent(entity=self.level.player, ground=ground))
+        # for entity in self.image
 
     # load and start game
     def start_game(self):
@@ -256,8 +258,10 @@ class Game:
         if self.music:
             self.music.play()
 
-        self.running = True
+        # load the first level
         self.init_level()
+
+        self.running = True
         loop_counter = 0
         dt = [0]*15
         while self.running:
@@ -266,23 +270,20 @@ class Game:
                 self.input.handle_pygame_event(event)
             self.handle_game_events()  # handles game component events
 
-
             # graphics processing
             if self.level is not None:
                 self.level.display()
-
             # time betweem frames
             dt[loop_counter] = self.clock.tick(Game.FPS)  # returns the elapsed time in milliseconds
             # display after waiting for fps time passed
             pygame.display.update()
 
-
             # game mechanics
             # update game components with delta time
-            self.level.update(dt[loop_counter])  # 1/100 seconds
+            self.level.update(dt[loop_counter])  # 1/100 seconds (centiseconds)
             # detect collisions
             self.detect_collisions()
-            # update game copmonents that aren't part of the level
+            # update game copmonents that aren't part of the image
             for component in self.active_game_components:
                 component.update(dt[loop_counter])
 
@@ -294,13 +295,34 @@ class Game:
                 print("[G] TPF: {}\t FPS: {}".format(time_per_frame, frames_per_time))
                 loop_counter = 0
 
+def simulate_input(game):
+    time.sleep(3)
+    game.add_game_event(AddTextEvent(level=game.level, text="HELLO WORLD!", pos=(20, 20), size=(300, 150)))
+    #game.add_game_event(create_game_event("Attack", attacker= game.image.player, pos=(20, 20)))
 
+def rectangle_test():
+    a = pygame.Rect((0, 0), (1280, 720))
+    b = pygame.Rect((200, 400), (300, 460))
+    print("clamp: " + str(b.clamp(a)))
+
+    a = pygame.Rect((0, 0), (1280, 720))
+    b = pygame.Rect((1200, 700), (300, 460))
+    print("contains: " + str(a.contains(b)))  # has to be completely contained
+
+    a = pygame.Rect((100, 100), (1200, 720))
+    b = pygame.Rect((0, 0), (1280, 720))
+    print("adding top-left: " + str(a.topleft+b.topleft))
+
+    a = pygame.Rect((1, 1), (1280, 720))
+    print("inflate: " + str(a.inflate(2, 2)))
 
 
 def main():
+    rectangle_test()
+    exit()
     game = Game()
+    #Thread(target=simulate_input, args=[game]).start()
     game.start_menu()
-
 
 if __name__ == '__main__':
     try:
