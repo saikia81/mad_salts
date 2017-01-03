@@ -1,5 +1,5 @@
 from Game_components import *
-from Graphics import controller as graphics_handler, Camera
+from Graphics import controller as graphics_handler, Camera, complex_camera
 
 CAMERA_WIDTH = graphics_handler.CAMERA_WIDTH
 CAMERA_HEIGHT = graphics_handler.CAMERA_HEIGHT
@@ -74,7 +74,7 @@ class Level():
     def add_world_component(self, world_component):
         self.static_components.append(world_component)
         print(world_component.image)
-        self.image.blit(None, world_component.rect)
+        self.image.blit(world_component.image, world_component.rect)
 
     # when adding a component to a image, this method should be used exclusively
     def add_game_component(self, component):
@@ -168,6 +168,7 @@ def level_builder(level_number):
     static_level_components = []  # additional dynamic blocks and other level_number components
     dynamic_level_components = []
     level_size = None
+    camera_type = None
 
     if level_number == -1:  # testing
         level_name = 'test'
@@ -176,15 +177,20 @@ def level_builder(level_number):
         ground_pos = 500
         static_level_components.append(Ground('forest_ground_p0', (0, ground_pos)))
         static_level_components.append(Ground('forest_ground_p1', (700, ground_pos)))
+
     elif level_number == 0:
         level_name = 'forest'
-        level_size = (CAMERA_WIDTH*2, CAMERA_HEIGHT*2)
         player = Player((50, 50))  # player and it's starting position in the level_number
         background = Background('background0', (0, 0), level_size)
         ground_pos = 500
         static_level_components.append(Ground('forest_ground_p0', (0, ground_pos)))
+        static_level_components.append(Ground('forest_ground_p0', (0, ground_pos)))
         static_level_components.append(Ground('forest_ground_p1', (700, ground_pos)))
 
+        test = Text('HELLO WORLD!!! TEST TEST TEST TEST', (100, 100), (400, 200))
+        print('LV: test: {}'.format(test.image))
+        dynamic_level_components.append(test)
+        camera_type = complex_camera
         # dynamic_level_components
     elif level_number == 1:
         raise NotImplementedError("Level value hasn't been implemented!")
@@ -197,4 +203,4 @@ def level_builder(level_number):
         raise NotImplementedError("Level value hasn't been implemented!")
 
     return Level(level_name, player, static_level_components, dynamic_level_components, background=background,
-                 level_size=level_size, camera_type=None)
+                 level_size=level_size, camera_type=camera_type)

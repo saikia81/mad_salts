@@ -41,9 +41,9 @@ class AddTextEvent(GameEvent):
     TYPE = 'ADDTEXT'
 
     def handle(self):
-        test = Text(self.text, self.pos, self.size)
-        print("test: " + repr(test))
-        self.level.add_world_component(test)
+        text = Text(self.text, self.pos, self.size)
+        print("test: " + repr(text))
+        self.level.add_world_component(text)
 
 
 # movement events are a bad design idea, but right now necessary

@@ -17,7 +17,7 @@ class GraphicsComponent(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         # create an ID for  every graphical object
         self.component_id = self.__class__.component_id
-        GraphicsComponent.component_id += 1  # add one
+        GraphicsComponent.component_id += 1  # increment class variable
         self.graphics_controller = graphics_controller  # graphics controller so components can take care of blitting
         self.find_resources()  # automatically searches for the appropriate surfaces that go with the component
         # use image size if no size is specified
@@ -65,20 +65,20 @@ class GraphicsComponent(pygame.sprite.Sprite):
 class Text(GraphicsComponent):
     """a surface with rendered text"""
     TYPE = "Text"
-    FONT = pygame.font.SysFont("Ariel", 32)
+    FONT = pygame.font.SysFont("Ariel", 20)
 
     def __init__(self, text, pos, size):
         self.text = text
-        super(Text, self).__init__(pos, size)
         self.image = None
+        super(Text, self).__init__(pos, size)
 
     def init_image(self):
-        text = self.FONT.render(self.text, True, (0, 0, 0))
+        text = self.FONT.render(self.text, True, (255, 255, 255))
         self.image = text  #.convert_alpha()
         print("image has init: " + repr(self.image))
 
-    def update(self):
-        pass
+    def update(self, dt):
+        return
 
 # text meters on screen (for debugging)
 # todo: enable image base meters
@@ -115,8 +115,6 @@ class PhysicsEntity(GraphicsComponent):
     Y_MAX_SPEED = 40  # (10 * meters) / seconds
     X_MAX_ACCEL = -1
 
-
-
     def __init__(self, pos):
         super(PhysicsEntity, self).__init__(pos)
         self.direction = 1  # negative: left (+x), positive: right (-x)
@@ -131,7 +129,7 @@ class PhysicsEntity(GraphicsComponent):
     # relies on delta time
     def movement_physics(self, dt):
         if self.ground:
-            if not self.rect.colliderect(self.ground.rect.inflate(1), self.rect):
+            if not self.rect.colliderect(self.ground.rect.inflate(1, 1)):
                 self.ground = None
             else:
                 self.y_accel = 0
@@ -243,8 +241,9 @@ class PhysicsEntity(GraphicsComponent):
     # collision detection adds a new ground
     def set_ground(self, ground):
         """grounds the entity, and stops vertical movement"""
-        self.y_accel = 0
-        self.x_accel = 0
+        if self.ground is None:
+            self.y_accel = 0
+            self.x_accel = 0
         self.ground = ground
 
     def stay_on_the_ground(self, dt):

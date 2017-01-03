@@ -54,7 +54,7 @@ class Graphics:
             else:
                 x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
                 dest = (x0 - x1, y0 - y1)
-                print("surface '{}' not on camera: '{}'".format(surface, dest))
+                print("surface '{}' not on camera: '{}'".format(rect, dest))
         else:
             TypeError("'camera' has to be of the type 'Camera'")
 
@@ -79,6 +79,7 @@ class Graphics:
     # takes a string, returns a blittable text label
     # word wrapping should be done by making multiple labels
     def make_text(self, text, color=(0, 0, 0)):
+        raise NotImplementedError()
         if type(text) != str:
             raise TypeError("Text must be a string!")
         return self.font.render(text, 1, color)
@@ -98,7 +99,7 @@ class Graphics:
     def update_dirty_rects(self):
         """Updates every rectangle in game for rectangle in dirty rectangles"""
         pygame.display.update(self.dirty_rects)  # update is faster when all rectangles are passed at once
-        print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
+        #  print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
         self.dirty_rects.clear()
 
     # blits image to the display surface, and adds the rectangle to a list
@@ -146,15 +147,15 @@ def simple_camera(camera, target_rect):
 
 
 def complex_camera(camera, target_rect):
-    l, t, _, _ = target_rect
+    x, y, _, _ = target_rect
     _, _, w, h = camera.rect
-    l, t, _, _ = -l + camera.extreme_point[0], -t + camera.extreme_point[1], w, h
+    x, y = x - camera.rect.width/2, camera.rect.height/2 - y
 
-    l = min(0, l)  # stop scrolling at the left edge
-    l = max(-(camera.rect.width - camera.extreme_point[0]), l)  # stop scrolling at the right edge
-    t = max(-(camera.rect.height - camera.extreme_point[1]), t)  # stop scrolling at the bottom
-    t = min(0, t)  # stop scrolling at the top
-    camera.rect = pygame.Rect(l, t, w, h)
+    x = max(0, x)  # stop scrolling at the left edge
+    x = min(-(camera.rect.width - camera.extreme_point[0]), x)  # stop scrolling at the right edge
+    y = max(-(camera.rect.height - camera.extreme_point[1]), y)  # stop scrolling at the bottom
+    y = min(0, y)  # stop scrolling at the top
+    camera.rect = pygame.Rect(x, y, w, h)
 
 
 # only one graphics engine can be initialized at the same time, for now

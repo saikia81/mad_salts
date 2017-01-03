@@ -150,7 +150,7 @@ class Game:
 
     # Init Game state
     def __init__(self):
-`        assert (pygame.init(), (6, 0))  # assert all Pygame modules are loaded
+        assert (pygame.init(), (6, 0))  # assert all Pygame modules are loaded
         self.running = False
         self.init_sound()  # load a song for music
         self.clock = pygame.time.Clock()  # for frame control; time
@@ -284,13 +284,13 @@ class Game:
             self.level.update(dt[loop_counter])  # 1/100 seconds (centiseconds)
             # detect collisions
             self.detect_collisions()
-            # update game copmonents that aren't part of the image
+            # update game components that aren't part of the image
             for component in self.active_game_components:
                 component.update(dt[loop_counter])
 
             loop_counter += 1  # how many loops have been made
             # FPS
-            if loop_counter == len(dt):  # print and start over every 10 frames
+            if loop_counter == len(dt):  # print and start over every 15 frames
                 frames_per_time = sum(dt)/len(dt)
                 time_per_frame = 10 / sum(dt)/len(dt)
                 print("[G] TPF: {}\t FPS: {}".format(time_per_frame, frames_per_time))
@@ -355,7 +355,7 @@ def rectangle_test():
 
 
 def main():
-    display_level(-1)  # only inits level, and displays it
+    #display_level(-1)  # only inits level, and displays it
 
     #rectangle_test()
     #exit()
