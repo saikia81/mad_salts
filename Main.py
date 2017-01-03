@@ -150,7 +150,7 @@ class Game:
 
     # Init Game state
     def __init__(self):
-        assert (pygame.init(), (6, 0))  # assert all pygame modules are loaded
+`        assert (pygame.init(), (6, 0))  # assert all Pygame modules are loaded
         self.running = False
         self.init_sound()  # load a song for music
         self.clock = pygame.time.Clock()  # for frame control; time
@@ -211,6 +211,7 @@ class Game:
 
     # start menu, currently sends you directly into the game
     def start_menu(self):
+        self.graphics.init_screen()
         self.start_game()
 
     # collision detection per entity that the function is called with
@@ -295,6 +296,42 @@ class Game:
                 print("[G] TPF: {}\t FPS: {}".format(time_per_frame, frames_per_time))
                 loop_counter = 0
 
+def display_level(level_n):
+    event_handler = EventHandler()
+    input_handler = InputHandler(event_handler)
+
+    graphics_controller.init_screen((1399, 905))
+
+    class Temp:
+        pass
+    t = Temp()
+    t.input = input_handler
+    event_handler.add(LoadLevelEvent(level=level_n, game_state=t))
+    event_handler.get().handle()
+    level = t.level
+    print('background size: {}'.format(level.rect.bottomleft))
+
+
+    running = True
+    dt =0
+    while running:
+        # Input mechanics
+        for event in pygame.event.get():
+            input_handler.handle_pygame_event(event)
+
+        while not event_handler.empty():
+            event = event_handler.get()
+            event.handle()
+
+        # graphics processing
+        if level is not None:
+            level.display()
+        # time betweem frames
+        # display after waiting for fps time passed
+        pygame.display.flip()
+
+
+
 def simulate_input(game):
     time.sleep(3)
     game.add_game_event(AddTextEvent(level=game.level, text="HELLO WORLD!", pos=(20, 20), size=(300, 150)))
@@ -318,8 +355,10 @@ def rectangle_test():
 
 
 def main():
-    rectangle_test()
-    exit()
+    display_level(-1)  # only inits level, and displays it
+
+    #rectangle_test()
+    #exit()
     game = Game()
     #Thread(target=simulate_input, args=[game]).start()
     game.start_menu()

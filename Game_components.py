@@ -131,12 +131,13 @@ class PhysicsEntity(GraphicsComponent):
     # relies on delta time
     def movement_physics(self, dt):
         if self.ground:
-            if not self.rect.colliderect(self.ground.rect.inflate(1)):
+            if not self.rect.colliderect(self.ground.rect.inflate(1), self.rect):
                 self.ground = None
             else:
                 self.y_accel = 0
                 self.y_speed = 0
-            if not (self.x_accel or self.x_speed or self.y_accel or self.y_speed): return
+            if not (self.x_accel or self.x_speed or self.y_accel or self.y_speed):
+                return
 
         try:
             # the amount of time that has passed in the game relative to real time

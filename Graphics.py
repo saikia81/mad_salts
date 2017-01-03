@@ -1,4 +1,3 @@
-#
 # graphics handling
 
 import os
@@ -16,17 +15,27 @@ class Graphics:
     CAMERA_HEIGHT = 720
 
     def __init__(self):
+
         # init modules
         pygame.font.init()
         # init display
-        self.screen = pygame.display.set_mode((self.CAMERA_WIDTH, self.CAMERA_HEIGHT), pygame.HWSURFACE)
+        self.screen = None
         # sidescrolling camera
         self.camera = None
-        pygame.display.set_caption("Mad Salts")
+
         # resources
         self.resources = {}  # holds the loaded graphical resources grouped (by directory)
         self.load_resources()  # loads all resources; file extensions are not part of the name
+
         self.dirty_rects = []  # an updated list of rectangles that have yet to be updated on the screen
+
+    def init_screen(self,window_resolution=None):
+        if window_resolution is not None:
+            self.CAMERA_WIDTH, self.CAMERA_HEIGHT = window_resolution
+        self.screen = pygame.display.set_mode((self.CAMERA_WIDTH, self.CAMERA_HEIGHT), pygame.HWSURFACE)
+        pygame.display.set_caption("Mad Salts")
+        print("window on screen initialized, with res: {}".format((self.CAMERA_WIDTH, self.CAMERA_HEIGHT)))
+
 
     def set_camera(self, camera):
         print("[SC] camera set: {}".format(camera))
@@ -94,14 +103,15 @@ class Graphics:
 
     # blits image to the display surface, and adds the rectangle to a list
     def blit(self, surface, rect, area=None):
+
         self.screen.blit(surface, rect, area)
         self.dirty_rects.append(rect)
         print("[GE] blitted: {}, rect: {}".format(surface, rect))
 
     def display(self, image, rect):
         self.blit(image, rect)
-        self.dirty_rects.append(rect)
-        raise NotImplementedError("\n !! finish this first!")
+        self.dirty_rects
+        raise NotImplementedError("\nfinish this first!")
 
     # Graphical components test
     def blit_test(self, player):
