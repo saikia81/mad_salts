@@ -1,9 +1,12 @@
-from Game_components import Text
-from Levels import level_builder
+from threading import Thread
 
+from game_components import Text
+from levels import level_builder
+from settings import *
 
-class GameEvent:
+class GameEvent(Thread):
     def __init__(self, **data):
+        super(GameEvent, self).__init__()
         self.event_name = self.TYPE
         self.data = data
 
@@ -14,11 +17,14 @@ class GameEvent:
             pass
 
     def __del__(self):
-        print("[EV] handled: {} with data: {}".format(self.TYPE, self.data))
+        if INFO:
+            print("[EV] handled: {} with data: {}".format(self.TYPE, self.data))
 
     def handle(self):
         raise NotImplementedError("Please implement this method")
 
+    def run(self):
+        return self.handle()
 
 class LoadLevelEvent(GameEvent):
     """loads a image using Level.level_builder"""
@@ -41,9 +47,16 @@ class AddTextEvent(GameEvent):
     TYPE = 'ADDTEXT'
 
     def handle(self):
+        c = []
+        for x in self.level.components:
+            if type(x) == Text:
+                c.append(x.text)
+        if self.text in c:
+            if DEBUG:
+                print('text already present')
+            return
         text = Text(self.text, self.pos, self.size)
-        print("test: " + repr(text))
-        self.level.add_world_component(text)
+        self.level.add_component(text)
 
 
 # movement events are a bad design idea, but right now necessary
@@ -68,11 +81,26 @@ class GroundCollisionEvent(GameEvent):
     def handle(self):
         self.entity.set_ground(self.ground)
 
+class DelGameComponentEvent(GameEvent):
+    TYPE = 'DelGameComponent'
 
-EVENTS = [LoadLevelEvent, AttackEvent, AddTextEvent, MoveEvent, StopMoveEvent, GroundCollisionEvent]
+    def handle(self):
+        try:
+            del self.level.components[self.level.components.index(self.component)]
+        except ValueError as ex:
+            if WARNING:
+                print(f"[EV] component couldn't be deleted: {self.component}")
+        del self.level.dynamic_components[self.level.dynamic_components.index(self.component)]
+
+
+
+EVENTS = [LoadLevelEvent, AttackEvent, AddTextEvent, MoveEvent, StopMoveEvent, GroundCollisionEvent,
+          DelGameComponentEvent]
 
 
 def create_game_event(_type, **data):
     return EVENTS[_type](data)
 
 # game_events = {name: GameEvent(name) for name, handler in {'attack':None, 'init_level': None}.values()}
+
+

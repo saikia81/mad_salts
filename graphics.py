@@ -1,18 +1,15 @@
 # graphics handling
 
 import os
-from queue import Queue
 
 import pygame
 
+from settings import *
 
 class Graphics:
     """Graphical resources, Graphics handling, and display control"""
     # a list with all sub-resource dirs (the keys are in lower case)
     RESOURCE_DIRS = {resource.lower(): 'resources/' + resource for resource in os.listdir('resources')}
-
-    CAMERA_WIDTH = 1280
-    CAMERA_HEIGHT = 720
 
     def __init__(self):
 
@@ -32,9 +29,10 @@ class Graphics:
     def init_screen(self,window_resolution=None):
         if window_resolution is not None:
             self.CAMERA_WIDTH, self.CAMERA_HEIGHT = window_resolution
-        self.screen = pygame.display.set_mode((self.CAMERA_WIDTH, self.CAMERA_HEIGHT), pygame.HWSURFACE)
+        self.screen = pygame.display.set_mode((CAMERA_WIDTH, CAMERA_HEIGHT), pygame.HWSURFACE | pygame.DOUBLEBUF)
         pygame.display.set_caption("Mad Salts")
-        print("window on screen initialized, with res: {}".format((self.CAMERA_WIDTH, self.CAMERA_HEIGHT)))
+        if INFO:
+            print("window on screen initialized, with res: {}".format((CAMERA_WIDTH, CAMERA_HEIGHT)))
 
 
     def set_camera(self, camera):
@@ -45,7 +43,8 @@ class Graphics:
         self.camera = None
 
     def blit_to_camera(self, surface, rect, camera):
-        print(str(rect) + ", " + str(surface) + ", " + str(camera))
+        if DEBUG:
+            print(str(rect) + ", " + str(surface) + ", " + str(camera))
         if type(camera) is Camera:
             if camera.rect.colliderect(rect):
                 x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
@@ -54,7 +53,8 @@ class Graphics:
             else:
                 x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
                 dest = (x0 - x1, y0 - y1)
-                print("surface '{}' not on camera: '{}'".format(rect, dest))
+                if WARNING:
+                    print("surface '{}' not on camera: '{}'".format(rect, dest))
         else:
             TypeError("'camera' has to be of the type 'Camera'")
 
@@ -88,18 +88,16 @@ class Graphics:
     # order matters! first with the background, and last is the foreground
     def display_all(self):
         # self.screen.fill(pygame.Color('black')) #  fill screen with black
-        try:
-            if self.dirty_rects.not_empty:
-                self.screen.update([rect for rect in self.dirty_rects.empty()])
-        except Queue.Empty:
-            pass
+        if len(self.dirty_rects) > 0:
+            self.screen.update([rect for rect in self.dirty_rects.empty()])
         pygame.display.flip()
 
     # all rectangles that have changed on the display get updated
     def update_dirty_rects(self):
         """Updates every rectangle in game for rectangle in dirty rectangles"""
         pygame.display.update(self.dirty_rects)  # update is faster when all rectangles are passed at once
-        #  print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
+        if DEBUG:
+            print("[GA] rects blitted: {}".format(self.dirty_rects))  # debugging
         self.dirty_rects.clear()
 
     # blits image to the display surface, and adds the rectangle to a list
@@ -107,7 +105,8 @@ class Graphics:
 
         self.screen.blit(surface, rect, area)
         self.dirty_rects.append(rect)
-        print("[GE] blitted: {}, rect: {}".format(surface, rect))
+        if DEBUG:
+            print("[GE] blitted: {}, rect: {}".format(surface, rect))
 
     def display(self, image, rect):
         self.blit(image, rect)
@@ -123,9 +122,10 @@ class Graphics:
 class Camera():
     def __init__(self, camera_func, target_rect, level_limit):
         self.camera_func = camera_func
-        self.rect = pygame.Rect((0, 0), (Graphics.CAMERA_WIDTH, Graphics.CAMERA_HEIGHT))
+        self.rect = pygame.Rect((0, 0), (CAMERA_WIDTH, CAMERA_HEIGHT))
         self.extreme_point = level_limit
-        print('[CA] ' + repr(self.rect))
+        if INFO:
+            print('[CA] ' + repr(self.rect))
 
     def __repr__(self):
         x, y, w, h = self.rect
@@ -136,14 +136,15 @@ class Camera():
 
     def update(self, target_rect):
         self.camera_func(self, target_rect)
-        print("[CA] update: {}".format(self.rect))
+        if DEBUG:
+            print("[CA] update: {}".format(self.rect))
 
 
 def simple_camera(camera, target_rect):
     _, _, w, h = camera.rect
     x, y, _, _ = target_rect
 
-    camera.rect = pygame.Rect(-x + Graphics.CAMERA_WIDTH / 2, -y + Graphics.CAMERA_HEIGHT / 2, w, h)
+    camera.rect = pygame.Rect(-x + CAMERA_WIDTH / 2, -y + CAMERA_HEIGHT / 2, w, h)
 
 
 def complex_camera(camera, target_rect):

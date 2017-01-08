@@ -5,7 +5,11 @@ any time a reaction occurs, display the reaction formula
 
 [NaCl] is a common salt which in a solution reacts with almost all other salts
 
-
+Oh NO, look out, it's a chloride monster.
+ Chloride monster react with Natrium or Hydrogen
+ You seem to have a water canon, you can penetrate it's outer shell
+ aim at the monster, and shoot with the left mouse button.
+ Once the monster is hit: the hydrogen atoms in tge water will react with the Chloride
 
 
 
