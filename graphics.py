@@ -29,7 +29,7 @@ class Graphics:
     def init_screen(self,window_resolution=None):
         if window_resolution is not None:
             self.CAMERA_WIDTH, self.CAMERA_HEIGHT = window_resolution
-        self.screen = pygame.display.set_mode((CAMERA_WIDTH, CAMERA_HEIGHT), pygame.HWSURFACE | pygame.DOUBLEBUF)
+        self.screen = pygame.display.set_mode((CAMERA_WIDTH, CAMERA_HEIGHT), pygame.HWSURFACE)
         pygame.display.set_caption("Mad Salts")
         if INFO:
             print("window on screen initialized, with res: {}".format((CAMERA_WIDTH, CAMERA_HEIGHT)))
@@ -119,11 +119,12 @@ class Graphics:
         return self.screen.blit(player.sprite, player.rect)
 
 # a camera surface that can be blitted on to the display
-class Camera():
+class Camera:
     def __init__(self, camera_func, target_rect, level_limit):
         self.camera_func = camera_func
         self.rect = pygame.Rect((0, 0), (CAMERA_WIDTH, CAMERA_HEIGHT))
         self.extreme_point = level_limit
+        self.update(target_rect)  # this must be the last line, because it uses the state to define the next
         if INFO:
             print('[CA] ' + repr(self.rect))
 
@@ -132,10 +133,28 @@ class Camera():
         return "Camera; pos: " + str((x, y)) + ", size:  " + str((w, h))
 
     def apply(self, rect):
-        return rect.move(self.state.topleft)
+        return rect.move(self.state)
 
     def update(self, target_rect):
-        self.camera_func(self, target_rect)
+        half_camera_width = CAMERA_WIDTH / 2
+        half_camera_height = CAMERA_HEIGHT / 2
+        cx, cy = target_rect.center
+
+        if 0 > cx - half_camera_width:
+        #if cx > 300:
+            self.rect.left = 0
+        #elif cx < 300:
+        elif self.extreme_point[0] < cx + half_camera_width:
+            self.rect.right = self.extreme_point[0]
+        else:
+            self.rect.left = cx - half_camera_width
+
+        if 0 > cy - half_camera_height:
+            self.rect.top = 0
+        elif self.extreme_point[1] < cy + half_camera_height:
+            self.rect.bottom = self.extreme_point[1]
+        else:
+            self.rect.centery = cy
         if DEBUG:
             print("[CA] update: {}".format(self.rect))
 
@@ -148,6 +167,7 @@ def simple_camera(camera, target_rect):
 
 
 def complex_camera(camera, target_rect):
+
     x, y, _, _ = target_rect
     _, _, w, h = camera.rect
     x, y = x - camera.rect.width/2, camera.rect.height/2 - y

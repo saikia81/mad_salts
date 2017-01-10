@@ -1,3 +1,5 @@
+# graphical, and level components which can be used together to make a world in which you can play (and learn)
+
 import time
 
 import pygame
@@ -8,7 +10,6 @@ from settings import *
 
 GAME_SPEED = 0.033  # seconds per frame
 GRAVITY = 10
-
 
 class GraphicsComponent(pygame.sprite.Sprite):
     """Base class for all Graphical Game Components"""
@@ -68,6 +69,12 @@ class GraphicsComponent(pygame.sprite.Sprite):
     def display(self, screen):
         self.graphics_controller.blit_to_camera(self.image, self.rect, screen)
 
+class LevelComponent(GraphicsComponent):
+    """Base class for all level building blocks"""
+
+    def update(self):
+        raise NotImplementedError(f"Implement update for non-static type: {self.TYPE}")
+
 # Renders text and makes a surface for it
 class Text(GraphicsComponent):
     """a surface with rendered text"""
@@ -77,7 +84,7 @@ class Text(GraphicsComponent):
         self.font = pygame.font.SysFont("Ariel", font_size)
         self.text = text
         self.image = None
-        super(Text, self).__init__(pos, size)
+        super().__init__(pos, size)
         self.start_time = time.time()
         self.max_time = max_time
 
@@ -99,7 +106,7 @@ class Meter(GraphicsComponent):
     TYPE = 'Meter'
 
     def __init__(self, update_function, pos):
-        super(Player, self).__init__(pos)
+        super().__init__(pos)
         self.update_function = update_function
         self.value = 0
 
@@ -114,8 +121,8 @@ class Meter(GraphicsComponent):
         pass
 
 
-class PhysicsEntity(GraphicsComponent):
-    """Base class for all physics affected entities. Entity will be able to move ('left', 'right', 'up', and 'down'):
+class PhysicsEntity:
+    """Base class for all physics affected entities. :
     horizontally, and vertically. Every entity contains the members: x/y_accel, and x/y_speed,
     which can be used to directly influence movement """
 
@@ -128,8 +135,7 @@ class PhysicsEntity(GraphicsComponent):
     Y_MAX_SPEED = 40  # (10 * meters) / seconds
     X_MAX_ACCEL = -1
 
-    def __init__(self, pos):
-        super(PhysicsEntity, self).__init__(pos)
+    def __init__(self):
         self.direction = 1  # negative: left (+x), positive: right (-x)
         self.ground = None  # the ground object under it's feet
         self.x_speed = 0  # m/s
@@ -204,8 +210,6 @@ class PhysicsEntity(GraphicsComponent):
         else:
             self.y_accel += 1 * game_time
 
-
-
         # reports jump accel
         if 0 < self.y_accel < 2:
             if DEBUG:
@@ -229,8 +233,19 @@ class PhysicsEntity(GraphicsComponent):
         if DEBUG:
             print("[PE] speed: ({}, {}), accel: ({}, {})".format(self.x_speed, self.y_speed, self.x_accel, self.y_accel))
 
-    # when no key press is registered anymore the event system should notify the player it's standing still
 
+
+class Character(LevelComponent, PhysicsEntity):
+    """Physical Entity which is able to move ('left', 'right', 'up', 'down', and jump)"""
+
+    def __init__(self, pos):
+        super().__init__(pos)
+        PhysicsEntity.__init__(self)
+
+    def init_image(self):
+        self.image = self.image.convert_alpha()
+
+    # when no key press is registered anymore the input event system should notify the player it's standing still
     def move(self, movement):
         if movement == 'right':
             self.x_accel = self.X_ACCELERATION_SPEED
@@ -245,8 +260,9 @@ class PhysicsEntity(GraphicsComponent):
             self.y_accel = self.Y_ACCELERATION_SPEED
             self.move_y = True
         if movement == 'jump':
-            self.y_accel = -self.JUMP_ACCELERATION_SPEED
-            self.jump == True
+            if self.ground is not None:
+                self.y_accel = -self.JUMP_ACCELERATION_SPEED
+                self.jump == True
 
         if self.x_accel * self.direction < 0:  # detects if direction has changed by the negative/positive difference
             if DEBUG:
@@ -291,16 +307,31 @@ class PhysicsEntity(GraphicsComponent):
             # find from which side the block is touched
             print("[PE] building block touched!")
 
-    def stay_on_the_ground(self, dt):
-        if self.ground is None:
-            self.y_accel += GRAVITY
 
-        try:
-            # the amount of time that has passed in the game relative to real time
-            game_time = 1 / dt / GAME_SPEED  # the time that has passed in game is the: time_per_frame / game_speed_per_frame
-        except ZeroDivisionError as ex:
-            print('dt: {}'.format(dt))
-            game_time = 0  # temporary fix
+# the main player class
+class Player(Character):
+    """"The active player"""
+    TYPE = 'Player'
+
+    def __init__(self, pos):
+        super(Player, self).__init__(pos)
+        self.direction = -1 # the player sprite has a different direction
+
+    def update(self, dt):
+        self.movement_physics(dt)
+
+    def attack(self, pos):
+        if INFO:
+            print("[PL] attack at: {}".format(pos))  # do something
+
+    def stay_on_the_ground(self, dt):
+
+        if dt == 0:
+            game_time = 0
+            if WARNING:
+                print('[PL] dt: {}'.format(dt))
+        else:
+            game_time = 1 / dt / GAME_SPEED  # time passed in game = time_per_frame / game_speed_per_frame
 
         floor_y, self_y = self.ground.floor_pos, self.rect.bottomleft[1]
         if floor_y == self_y:  # let player be one pixel
@@ -313,35 +344,13 @@ class PhysicsEntity(GraphicsComponent):
 
         print("[d] floor_y: {}, self_y: {},")
 
-# the main player class
-class Player(PhysicsEntity):
-    """"The active player"""
-    TYPE = 'Player'
-
-    def __init__(self, pos):
-        super(Player, self).__init__(pos)
-
-    def init_image(self):
-        self.image = pygame.transform.flip(pygame.transform.scale(self.image, (47, 30)).convert_alpha(), True, False)
-
-    def update(self, dt):
-        self.movement_physics(dt)
-
-    def attack(self, pos):
-        if INFO:
-            print("[PL] attack at: {}".format(pos))  # do something
-
-
 # A graphical game component which mainly interacts with the player (and monsters)
-class Monster(PhysicsEntity):
+class Monster(Character):
     """Monster baseclass"""
     TYPE = 'Monster'
 
     def __init__(self, pos):
         super(Monster, self).__init__(pos)
-
-    def init_image(self):
-        self.image = self.image.convert_alpha()
 
     def update(self, dt):
         self.movement_physics(dt)
@@ -360,7 +369,8 @@ class TestMonster(Monster):
         pass
 
 
-class StaticLevelComponent(GraphicsComponent):
+
+class StaticLevelComponent(LevelComponent):
     """Base class for all image building blocks"""
 
     def __init__(self, resource_name, pos, size=None):
@@ -371,7 +381,24 @@ class StaticLevelComponent(GraphicsComponent):
         super(StaticLevelComponent, self).__init__(pos, size)
 
     def init_image(self):
-        self.image = pygame.transform.smoothscale(self.image, self.size)
+        try:
+            self.image = pygame.transform.smoothscale(self.image, self.size)
+        except ValueError:
+            self.image = pygame.transform.scale(self.image, self.size)
+
+    def update(self, dt):
+        pass
+
+class Portal(StaticLevelComponent):
+    """portal"""
+    TYPE = 'portal'
+
+    def __init__(self, resource_name, pos, size=None):
+        super().__init__(resource_name, pos, size)
+
+    def update(self, dt):
+        pass
+
 
 class BuildingBlock(GraphicsComponent):
     """buildingblock"""
@@ -383,6 +410,10 @@ class BuildingBlock(GraphicsComponent):
 class Background(StaticLevelComponent):
     """Background"""
     TYPE = 'Background'
+
+    def __init__(self, resource_name, pos, size=None):
+        super().__init__(resource_name+'_background', pos, size)
+
     def scale_background_to_camera(self, size):
         if size is not None:  # if the size is smaller than the camera, it will scale the to the camera size
             if size[0] <= CAMERA_WIDTH:
@@ -413,5 +444,3 @@ GAME_COMPONENTS = {component.TYPE: component for component in GAME_COMPONENT_TYP
 
 def create_game_component(self, component_type, pos):
     return GAME_COMPONENTS[component_type](pos)
-
-

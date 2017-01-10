@@ -1,4 +1,3 @@
-from events import *
 from game_components import *
 from graphics import controller as graphics_handler, Camera, complex_camera
 
@@ -11,9 +10,10 @@ class Level():
                  level_size=None, camera_type=None):
         if level_size == None:
             level_size = background.size
+
         self.background = background
-        self.level_size = level_size
-        self.level_name = level_name
+        self.size = level_size
+        self.name = level_name
         # a dictionary with all image related game components
         self.player = player
         self.characters = [player]  # starts empty; is filled by npc's, and the player(s)
@@ -133,14 +133,13 @@ class Level():
             return
         for component in components:
             if pygame.sprite.collide_rect(entity, component):
-                if component:
+                if component:  # makes it acceptable to have None in components
                     if DEBUG:
                         print("[CD] ground collision!")
                     return component
                 else:
                     if DEBUG:
                         print("[CD] unknown collision: {}".format(component))
-        return component
 
     @staticmethod
     def detect_entity_collision(entity):
@@ -210,12 +209,12 @@ class Level():
 
     def end(self):
         self.freeze = True
-        self.add_component(Text("End Of Game", (self.level_size[0]/2, self.level_size[1]/2), (100, 50), font_size=30))
+        self.add_component(Text("End Of Game", (self.size[0] / 2, self.size[1] / 2), (100, 50), font_size=30))
 
     def __del__(self):
         graphics_handler.unset_camera()
         if INFO:
-            print("[LL] image '{}' unloaded".format(self.level_name))
+            print("[LL] image '{}' unloaded".format(self.name))
 
 
 
@@ -224,25 +223,27 @@ def level_builder(level_number):
     # any component that is part of the level should be added to world_components list
     static_level_components = []  # additional dynamic blocks and other level_number components
     dynamic_level_components = []
+    background_pos = (0, 0)
     level_size = None
-    camera_type = None
     camera_type = complex_camera
 
     if level_number == -1:  # testing
-        level_name = 'test'
-        background = Background('background0', (0, 0))
+        level_size = (1920,1080)
+        graphics_controller.init_screen()
+        level_name = 'forest'
         player = Player((50, 50))  # player and it's starting position in the level_number
         ground_pos = 500
-        static_level_components.append(Ground('forest_ground_p0', (0, ground_pos)))
-        static_level_components.append(Ground('forest_ground_p1', (700, ground_pos)))
+        static_level_components.append(Ground('forest_ground01', (0, ground_pos)))
+        static_level_components.append(Ground('forest_ground02', (850, ground_pos)))
+        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 1000))
 
+        dynamic_level_components
     elif level_number == 0:
         level_name = 'forest'
         player = Player((50, 50))  # player and it's starting position in the level_number
-        background = Background('background0', (0, 0), level_size)
         ground_pos = 500
-        static_level_components.append(Ground('forest_ground_p0', (0, ground_pos)))
-        static_level_components.append(Ground('forest_ground_p1', (850, ground_pos)))
+        static_level_components.append(Ground('forest_ground01', (0, ground_pos)))
+        static_level_components.append(Ground('forest_ground02', (850, ground_pos)))
         dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 10000))
 
         # dynamic_level_components
@@ -255,6 +256,8 @@ def level_builder(level_number):
         # dynamic_level_components
     else:
         raise NotImplementedError(f"Level value hasn't been implemented! {level_number}")
+
+    background = Background(level_name, background_pos, level_size)
 
     return Level(level_name, player, static_level_components, dynamic_level_components, background=background,
                  level_size=level_size, camera_type=camera_type)

@@ -17,10 +17,15 @@
 # Monster's walk towards player, possibly replace with AI
 
 import sys
+from queue import Full
+from time import sleep
+
+import pygame
 
 from events import *
 from game_components import *
 from settings import *
+
 
 # Input (keys, mouse)
 class InputHandler:
@@ -75,6 +80,8 @@ class InputHandler:
     def handle_mouse(self, id):
         pass
 
+    keys = {}
+
     def handle_pygame_event(self, event):
         if event == pygame.QUIT:
             Game.de_init()
@@ -82,7 +89,7 @@ class InputHandler:
         elif event.type == KEYDOWN:
             if event.key == K_ESCAPE:
                 Game.de_init()
-            # todo: decide what keypresses do (maybe something with a physics engine)
+            #if event.key.name in KEYS.values()
             if event.key == K_a:  # left
                 self.move('left')
             elif event.key == K_d:  # right
@@ -94,7 +101,8 @@ class InputHandler:
             elif event.key == K_SPACE:  # down
                 self.move('jump')
             elif event.key == K_t: # activate test
-                test()
+                if self.test:
+                    self.test()
         # when a key is released, in some casescreate an event
         elif event.type == KEYUP:  # something to handle seperate key pressing and releasing
             if event.key == K_a:  # left
@@ -114,7 +122,8 @@ class InputHandler:
 
 # a class which handels the initialization, resource loading, and interaction between the game components
 class Game:
-    """Game component handling (incl. screen), and game loop"""
+    """Can hold a level object, which it updates on every tick, and displays
+    Levels can be hotswapped. Doesn't touch graphics handler!"""
     FPS = 30
     SOUND_RESOURCE = r''  # todo: replace with sound per image
 
@@ -153,8 +162,8 @@ class Game:
             if WARNING:
                 print("[!]Sound didn't load!")
 
-    def init_level(self):
-        self.add_game_event(LoadLevelEvent(level=0, game_state=self))  # build, and load image
+    def init_level(self, level_number):
+        self.add_game_event(LoadLevelEvent(level=level_number, game_state=self))  # build, and load image
         sleep(1)
 
     # Event system
@@ -185,18 +194,20 @@ class Game:
                 event.handle()
 
     # start menu, currently sends you directly into the game
-    def start_menu(self):
+    def launch(self):
+        level_number = 0
         self.graphics.init_screen()
-        self.start_game()
+        level_number = -1  # debugging value: -1
+        self.start_game(level_number)
 
     # load and start game
-    def start_game(self):
+    def start_game(self, level_number):
         # starts music
         if self.music:
             self.music.play()
 
         # load the first level
-        self.init_level()
+        self.init_level(level_number)
 
         self.running = True
         loop_counter = 0
@@ -220,7 +231,7 @@ class Game:
             # game mechanics
             # update game components with delta time
             # todo: make the physics simulation take into account the time till the frame is displayed
-            self.level.detect_collisions()
+            self.level.detect_collisions()  # detect world, and character collisions
             self.level.update(dt[loop_counter])  # 1/100 seconds (centiseconds)
             # detect collisions
             # update game components that aren't part of the image
@@ -244,9 +255,40 @@ class Game:
                 break
 
 def display_level(level_n):
-    input_handler = InputHandler(event_handler)
+    input_handler = InputHandler()
 
-    graphics_controller.init_screen((1399, 905))
+    graphics_controller.init_screen()
+
+    class Temp:
+        pass
+    t = Temp()
+    t.input = input_handler
+    event_handler.add(LoadLevelEvent(level=level_n, game_state=t))
+    event_handler.get().handle()
+    level = t.level
+    print('background size: {}'.format(level.rect.bottomleft))
+
+    running = True
+    dt = 0
+    while running:
+        # Input mechanics
+        for event in pygame.event.get():
+            input_handler.handle_pygame_event(event)
+
+        while not event_handler.empty():
+            event = event_handler.get()
+            event.handle()
+
+        # graphics processing
+        if level is not None:
+            level.display()
+        # time betweem frames
+        # display after waiting for fps time passed
+        pygame.display.flip()
+
+def display_level1(level_n):
+    input_handler = InputHandler()
+    pygame.init()
 
     class Temp:
         pass
