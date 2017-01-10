@@ -21,6 +21,7 @@ from queue import Full
 from time import sleep
 
 import pygame
+from pygame.locals import *
 
 from events import *
 from game_components import *
