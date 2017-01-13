@@ -122,22 +122,23 @@ class Meter(GraphicsComponent):
 
 
 class PhysicsEntity:
-    """Base class for all physics affected entities. :
+    """Base class for all physics affected entities.
     horizontally, and vertically. Every entity contains the members: x/y_accel, and x/y_speed,
     which can be used to directly influence movement """
 
     # these default values have been chosen for a character
-    X_ACCELERATION_SPEED = 10
+    X_ACCELERATION_SPEED = 8
     Y_ACCELERATION_SPEED = 5
-    JUMP_ACCELERATION_SPEED = 10
+    JUMP_ACCELERATION_SPEED = 7
 
-    X_MAX_SPEED = 60  # 10 pixels per meter per second
+    X_MAX_SPEED = 50  # 10 pixels per meter per second
     Y_MAX_SPEED = 40  # (10 * meters) / seconds
     X_MAX_ACCEL = -1
 
     def __init__(self):
         self.direction = 1  # negative: left (+x), positive: right (-x)
         self.ground = None  # the ground object under it's feet
+        self.stairs = None  # makes vertical movement possible
         self.x_speed = 0  # m/s
         self.y_speed = 0
         self.x_accel = 0  # m/s/s
@@ -254,8 +255,9 @@ class Character(LevelComponent, PhysicsEntity):
             self.x_accel = -self.X_ACCELERATION_SPEED
             self.move_x = True
         if movement == 'up':
-            self.y_accel = -self.Y_ACCELERATION_SPEED
-            self.move_y = True
+            if self.stairs:
+                self.y_accel = -self.Y_ACCELERATION_SPEED
+                self.move_y = True
         elif movement == 'down':
             self.y_accel = self.Y_ACCELERATION_SPEED
             self.move_y = True

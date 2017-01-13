@@ -5,5 +5,5 @@ CAMERA_HEIGHT = 720
 
 # output levels
 WARNING = True
-INFO = False
+INFO = True
 DEBUG = False  # too much information
