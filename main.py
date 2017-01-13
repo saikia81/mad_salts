@@ -29,7 +29,7 @@ def rectangle_test():
 
 # game is a global variable
 def main():
-    #display_level1(int(input("which level number to display: "))) # only inits level, and displays it
+#    display_level1(int(input("which level number to display: "))) # only inits level, and displays it
 
     #exit()
 

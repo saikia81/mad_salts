@@ -39,7 +39,6 @@ class Level():
         if static_components is None:
             static_components = []
 
-
         level = pygame.Surface(level_size)
         level.fill(colour)
         level_rect = level.get_rect()
@@ -53,7 +52,6 @@ class Level():
                 # if not self.level_rect.contains(component.rect): continue  # only if component fits in level
                 if type(component) == placement:
                     level.blit(component.image.convert_alpha(), component.rect)
-
         if INFO:
             print("image surface created: {}".format(level))
         return level, level_rect
@@ -206,6 +204,9 @@ class Level():
             character.display(self.camera)
         for dynamic_component in self.dynamic_components:
             dynamic_component.display(self.camera)
+        for static_component in self.static_components:
+            if type(static_component) == ForeGround:
+                static_component.display(self.camera)
 
     def end(self):
         self.freeze = True
@@ -237,7 +238,7 @@ def level_builder(level_number):
         static_level_components.append(Ground('forest_ground02', (850, ground_pos)))
         dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 1000))
 
-        dynamic_level_components
+        static_level_components.append(ForeGround('forest_grass01', (0,0)))
     elif level_number == 0:
         level_name = 'forest'
         player = Player((50, 50))  # player and it's starting position in the level_number
