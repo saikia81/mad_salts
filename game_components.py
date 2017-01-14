@@ -125,6 +125,12 @@ class PhysicsEntity:
         if DEBUG:
             print("[PE] speed: ({}, {}), accel: ({}, {})".format(self.x_speed, self.y_speed, self.x_accel, self.y_accel))
 
+class weopon:
+    pass
+
+class phial(weopon):
+    pass
+
 
 class GraphicsComponent(pygame.sprite.Sprite):
     """Base class for all Graphical Game Components"""

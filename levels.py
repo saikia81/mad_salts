@@ -230,14 +230,14 @@ def level_builder(level_number):
     dynamic_level_components = []
     background_pos = (0, 0)
     level_size = None
-    player_size= (76, 60)
+    player_size = (76, 60)
     camera_type = complex_camera
 
     if level_number == -1:  # testing
         level_size = (1920,1080)
         graphics_controller.init_screen()
         level_name = 'forest'
-        player = Player((50, 50), player_size)  # player and it's starting position in the level_number
+        player = Player((50, 50), size=player_size)  # player and it's starting position in the level_number
         ground_pos = 500
         static_level_components.append(Ground('forest_ground01', (0, ground_pos)))
         static_level_components.append(Ground('forest_ground02', pos=(850, ground_pos)))
@@ -257,7 +257,8 @@ def level_builder(level_number):
         level_size = (1920, 1080)
         graphics_controller.init_screen()
         level_name = 'forest'
-        player = Player((50, 50))  # player and it's starting position in the level_number
+        player = Player((50, 50), sized
+        =player_size)  # player and it's starting position in the level_number
         ground_pos = 500
         static_level_components.append(Ground('forest_ground01', (-50, 800), size=(300, 200)))
         static_level_components.append(Ground('forest_ground02', (150, 800), size=(300, 200)))
