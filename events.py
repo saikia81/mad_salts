@@ -1,6 +1,6 @@
 from threading import Thread
 
-from game_components import Text
+from game_components import Text, create_game_component
 from levels import level_builder
 from settings import *
 
@@ -81,6 +81,13 @@ class GroundCollisionEvent(GameEvent):
     def handle(self):
         self.entity.set_ground(self.ground)
 
+class NewMonsterEvent(GameEvent):
+    TYPE = 'NewMonster'
+
+    def handle(self):
+        monster = create_game_component(self.type, self.pos, size=self.size)
+        self.level.add_character(monster)
+
 class DelGameComponentEvent(GameEvent):
     TYPE = 'DelGameComponent'
 
@@ -94,7 +101,7 @@ class DelGameComponentEvent(GameEvent):
 
 
 
-EVENTS = [LoadLevelEvent, AttackEvent, AddTextEvent, MoveEvent, StopMoveEvent, GroundCollisionEvent,
+EVENTS = [LoadLevelEvent, AttackEvent, AddTextEvent, MoveEvent, StopMoveEvent, GroundCollisionEvent, NewMonsterEvent,
           DelGameComponentEvent]
 
 

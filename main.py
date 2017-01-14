@@ -1,13 +1,16 @@
-import sys
-import time
+import sys, time
+from threading import Thread
 
 from game import Game
 
 
+
 def simulate_input(game):
+    from events import NewMonsterEvent
     time.sleep(3)
-    game.add_game_event(AddTextEvent(level=game.level, text=MOVEMENT_INSTRUCTIONS, pos=(20, 20), size=(300, 150)))
+    #game.add_game_event(AddTextEvent(level=game.level, text=MOVEMENT_INSTRUCTIONS, pos=(20, 20), size=(300, 150)))
     #game.add_game_event(create_game_event("Attack", attacker= game.image.player, pos=(20, 20)))
+    game.add_game_event(NewMonsterEvent(type='Schagel', pos=(300, 50), size=(64, 64), level=game.level))
 
 def rectangle_test():
     a = pygame.Rect((0, 0), (1280, 720))
@@ -34,7 +37,7 @@ def main():
     #exit()
 
     game = Game()
-    #Thread(target=simulate_input, args=[game]).start()
+    Thread(target=simulate_input, args=[game]).start()
     game.launch()
 
 

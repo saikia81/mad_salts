@@ -1,9 +1,8 @@
 # graphics handling
 
-import os
+import os  # resource management
 
 import pygame
-
 from settings import *
 
 class Graphics:

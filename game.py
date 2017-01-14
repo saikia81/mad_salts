@@ -31,7 +31,7 @@ from settings import *
 # Input (keys, mouse)
 class InputHandler:
     """handles key presses and the pointer"""
-    movement_keys = ['left', 'right', 'up', 'jump']
+    movement_keys = ['left', 'right', 'up', 'jumping']
     action_keys = {'attack': AttackEvent}
     KEYS = []
 
@@ -100,7 +100,7 @@ class InputHandler:
             elif event.key == K_s:  # down
                 self.move('down')
             elif event.key == K_SPACE:  # down
-                self.move('jump')
+                self.move('jumping')
             elif event.key == K_t: # activate test
                 if self.test:
                     self.test()
@@ -115,7 +115,7 @@ class InputHandler:
             if event.key == K_s:  # down
                 self.stop_move('down')
             if event.key == K_SPACE:  # down
-                self.stop_move('jump')
+                self.stop_move('jumping')
         # mouse handling
         elif event.type == MOUSEBUTTONDOWN:
             event_handler.add(AttackEvent(attacker=self.player, pos=event.pos))

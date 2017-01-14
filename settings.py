@@ -1,5 +1,5 @@
 
-MOVEMENT_INSTRUCTIONS = "You can move around with 'wasd', and jump with 'space'"
+MOVEMENT_INSTRUCTIONS = "You can move around with 'wasd', and jumping with 'space'"
 CAMERA_WIDTH = 1280
 CAMERA_HEIGHT = 720
 

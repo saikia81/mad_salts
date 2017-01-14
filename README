@@ -1,5 +1,22 @@
+reqs: Python3.6 (f-strings), and pygame 1.9.2 (older should work)
+
+# A serious 2D sidescroller game
+#
+# Educational value may vary between:
+# 1. The dangers, and basic properties of chemical combinations
+# 2. salt memorising
+#
+# mode ideas
+# learning mode: let's you play freely with the chemical components
+# defender mode: is a castle defence game; the gameplay
+# story mode: crazy scientist on the run against monsters with salts
+#
+# Game mechanics Ideas
+# monster's attack each other when they are a different color (because elitism?)
+# monster's chemical composition changes because of (a salt) reactions (and makes them susceptible to physical attacks)
+# Monster's walk towards player, possibly replace with AI
+
 ALL CONTENT IN THIS REPOSITORY IS PROPERTY OF THE CREATOR.
 THIS CODE IS NOT TO BE USED, REPRODUCED OR DISPLAYED IN ANY STATE OR PART BY ANYONE WITHOUT EXPLICITLY WRITTEN AUTHORIZATION
 FROM THE CREATOR
 
-- Pablo Passchier

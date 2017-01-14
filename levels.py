@@ -17,7 +17,7 @@ class Level():
         # a dictionary with all image related game components
         self.player = player
         self.characters = [player]  # starts empty; is filled by npc's, and the player(s)
-        self.npcs = pygame.sprite.Group()
+        self.npc = pygame.sprite.Group()
         self.static_components = static_world_components  # image parts (e.g. background, ground)
         self.dynamic_components = dynamic_world_components  # image parts (e.g. swings, moving objects, bullets)
         self.components = [] + self.static_components + self.dynamic_components  # redundant list; fast requesting component
@@ -67,10 +67,7 @@ class Level():
     def find_player_ground(self):
         pass #x = self.player.rect.x
 
-    # game component management
-    def add_character(self, character):
-        self.characters.append(character)
-
+    # game component management)
     def add_world_component(self, world_component):
         self.static_components.append(world_component)
         if DEBUG:
@@ -78,10 +75,16 @@ class Level():
         self.image.blit(world_component.image, world_component.rect)
         self.components.append(world_component)
 
-    # when adding a component to an image, this method should be used exclusively
+    # when adding a dynamic level component to the level, this method should be used exclusively
     def add_component(self, component):
         self.dynamic_components.append(component)
         self.components.append(component)
+
+    def add_character(self, character):
+        self.characters.append(character)
+        if character.TYPE == 'Monster':
+            character.enemy = self.player
+        #self.npc.add(character)
 
     def del_component(self, component):
         if type(component) == Player:
@@ -111,9 +114,9 @@ class Level():
 
     def update(self, dt):
         """update all game components in the current level (does not checks for collisions)"""
-        if not self.freeze and self.player is None:
-            self.end()
         if self.freeze:
+            if self.player is None:
+                self.end()
             return
         # self.detect_collisions()
         for character in self.characters:
@@ -196,15 +199,16 @@ class Level():
         """calls display on every component;
         blitting them, and adding their rectangle to a dirty rectangles list"""
         # first put the background on the display
-        if self.camera is not None:
-            graphics_controller.blit(self.image, self.rect, self.camera.rect)
-        else:
+        if self.camera is None:
             graphics_controller.blit(self.image, self.rect)
-        for character in self.characters:
-            character.display(self.camera)
-        for dynamic_component in self.dynamic_components:
+            return
+
+        graphics_controller.blit(self.image, self.rect, self.camera.rect) # display level base image
+        for dynamic_component in self.dynamic_components:  # things like move-ables
             dynamic_component.display(self.camera)
-        for static_component in self.static_components:
+        for character in self.characters:  # player and NPCs
+            character.display(self.camera)
+        for static_component in self.static_components:  # foreground is the last to be displayed
             if type(static_component) == ForeGround:
                 static_component.display(self.camera)
 
@@ -226,19 +230,20 @@ def level_builder(level_number):
     dynamic_level_components = []
     background_pos = (0, 0)
     level_size = None
+    player_size= (76, 60)
     camera_type = complex_camera
 
     if level_number == -1:  # testing
         level_size = (1920,1080)
         graphics_controller.init_screen()
         level_name = 'forest'
-        player = Player((50, 50))  # player and it's starting position in the level_number
+        player = Player((50, 50), player_size)  # player and it's starting position in the level_number
         ground_pos = 500
         static_level_components.append(Ground('forest_ground01', (0, ground_pos)))
-        static_level_components.append(Ground('forest_ground02', (850, ground_pos)))
-        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 1000))
+        static_level_components.append(Ground('forest_ground02', pos=(850, ground_pos)))
+        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 200), (300, 100), 1000))
 
-        static_level_components.append(ForeGround('forest_grass01', (0,0)))
+        static_level_components.append(ForeGround('forest_grass01', (100,-80), size=(0, 0)))
     elif level_number == 0:
         level_name = 'forest'
         player = Player((50, 50))  # player and it's starting position in the level_number
