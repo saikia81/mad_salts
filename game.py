@@ -198,7 +198,7 @@ class Game:
     def launch(self):
         level_number = 0
         self.graphics.init_screen()
-        level_number = -1  # debugging value: -1
+        level_number = 1  # debugging value: -1
         self.start_game(level_number)
 
     # load and start game

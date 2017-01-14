@@ -253,13 +253,67 @@ def level_builder(level_number):
         dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 10000))
 
         # dynamic_level_components
-    elif level_number == 1:
-        raise NotImplementedError("Level value hasn't been implemented!")
-        level_name = ''
-        player = Player((0, 0))
+    elif level_number == 1: #forest
+        level_size = (1920, 1080)
+        graphics_controller.init_screen()
+        level_name = 'forest'
+        player = Player((50, 50))  # player and it's starting position in the level_number
+        ground_pos = 500
+        static_level_components.append(Ground('forest_ground01', (-50, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (150, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (300, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (450, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (550, 800), size=(300, 200)))
 
-        # static_level_components
-        # dynamic_level_components
+        static_level_components.append(Ground('forest_ground01', (950, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1100, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1250, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1400, 800), size=(300, 200)))
+
+        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 1000))
+
+    elif level_number == 2: #lab
+        level_size = (1920, 1080)
+        graphics_controller.init_screen()
+        level_name = 'lab'
+        player = Player((50, 50))  # player and it's starting position in the level_number
+        ground_pos = 500
+        static_level_components.append(Ground('forest_ground02', (-50, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (-50, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (150, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (150, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (300, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (300, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (450, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (450, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (600, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (600, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (750, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (750, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (900, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (900, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (1050, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1050, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (1200, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1200, 950), size=(300, 200)))
+
+        static_level_components.append(Ground('forest_ground02', (1350, 800), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1350, 950), size=(300, 200)))
+
+        static_level_components.append(ForeGround('lab_background01', (225, 380)))
+        static_level_components.append(ForeGround('lab_stuff01', (1000, 500)))
+
+        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 1000))
+
+
     else:
         raise NotImplementedError(f"Level value hasn't been implemented! {level_number}")
 
