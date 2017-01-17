@@ -3,7 +3,7 @@
 import os  # resource management
 
 import pygame
-from settings import *
+from configurations import *
 
 class Graphics:
     """Graphical resources, Graphics handling, and display control"""
@@ -41,21 +41,17 @@ class Graphics:
     def unset_camera(self):
         self.camera = None
 
-    def blit_to_camera(self, surface, rect, camera):
-        if DEBUG:
-            print(str(rect) + ", " + str(surface) + ", " + str(camera))
-        if type(camera) is Camera:
-            if camera.rect.colliderect(rect):
-                x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
-                dest = (x0 - x1, y0 - y1)
-                self.screen.blit(surface, dest)
-            else:
-                x0, y0, x1, y1 = rect.topleft + camera.rect.topleft
-                dest = (x0 - x1, y0 - y1)
-                if WARNING:
-                    print("surface '{}' not on camera: '{}'".format(rect, dest))
+    def blit_to_camera(self, surface, rect, camera_rect):
+        if GRAPHICS_DEBUG:
+            print(f"[GE] rect:{rect}\tblitted to:{camera}")
+        if camera_rect.colliderect(rect):
+            x0, y0 = rect.topleft
+            x1, y1 = camera_rect.topleft
+            dest = (x0 - x1, y0 - y1) # topleft of object - topleft of the camera
+            self.screen.blit(surface, dest)
         else:
-            TypeError("'camera' has to be of the type 'Camera'")
+            if WARNING:
+                print(f"[GE] '{surface}' not on camera: '{rect}'")
 
     def update_camera(self):
         self.screen.update()
@@ -82,6 +78,9 @@ class Graphics:
         if type(text) != str:
             raise TypeError("Text must be a string!")
         return self.font.render(text, 1, color)
+
+    def add_text_overlay(self):
+        pass
 
     # accepts a set of blittable objects
     # order matters! first with the background, and last is the foreground
@@ -125,14 +124,14 @@ class Camera:
         self.extreme_point = level_limit
         self.update(target_rect)  # this must be the last line, because it uses the state to define the next
         if INFO:
-            print('[CA] ' + repr(self.rect))
+            print(f"[CA] Initiated {repr(self)}")
 
     def __repr__(self):
         x, y, w, h = self.rect
-        return "Camera; pos: " + str((x, y)) + ", size:  " + str((w, h))
+        return f"pos:{(x, y)}, size:{(w, h)}"
 
     def apply(self, rect):
-        return rect.move(self.state)
+        return rect.throw(self.state)
 
     def update(self, target_rect):
         half_camera_width = CAMERA_WIDTH / 2

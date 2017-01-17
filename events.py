@@ -2,7 +2,7 @@ from threading import Thread
 
 from game_components import Text, create_game_component
 from levels import level_builder
-from settings import *
+from configurations import *
 
 class GameEvent(Thread):
     def __init__(self, **data):
@@ -64,7 +64,7 @@ class MoveEvent(GameEvent):
     TYPE = 'MOVE'
 
     def handle(self):
-        self.player.move(self.movement)
+        self.player.throw(self.movement)
 
 
 # probably not needed

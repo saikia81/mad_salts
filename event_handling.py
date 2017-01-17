@@ -2,7 +2,7 @@ from queue import Queue, Full
 from threading import Thread
 from time import sleep
 
-from settings import *
+from configurations import *
 
 
 class EventHandler(Queue, Thread):

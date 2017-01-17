@@ -6,25 +6,33 @@ import pygame
 
 from event_handling import event_handler
 from graphics import controller as graphics_controller
-from settings import *
+from configurations import *
 
 GAME_SPEED = 0.033  # seconds per frame (1s/30fps)
-GRAVITY = 10
+GRAVITY = 6
 
 
+# moves the entity, this changes the rectangle
+# relies on delta time
 class PhysicsEntity:
     """Base class for all physics affected entities.
-    horizontally, and vertically. Every entity contains the members: x/y_accel, and x/y_speed,
-    which can be used to directly influence movement """
+    horizontally, and vertically. Every entity contains the members: (x/y)_accel, and (x/y)_speed,
+    which can be used to directly influence movement (or so I claim)"""
 
-    # these default values have been chosen for a Player
-    X_ACCELERATION_SPEED = 4
-    Y_ACCELERATION_SPEED = 5
-    JUMP_ACCELERATION_SPEED = 7
+    # values that are defined by the physical constraints and characteristics
+    RIGHT = 1  # going right on the X-axis means a positive change for x
+    LEFT = -1
+    UP = -1
+    DOWN = 1  # going down on the y-axis means a positive change in y
 
-    X_MAX_SPEED = 35  # 10 pixels per meter per second
-    Y_MAX_SPEED = 25  # (10 * meters) / seconds
-    X_MAX_ACCEL = -1
+    # these default values have been chosen for a non-moving entity
+    X_ACCELERATION_SPEED = 0
+    Y_ACCELERATION_SPEED = 0
+    JUMP_SPEED = 0
+
+    X_MAX_SPEED = 10  # 10 pixels per second
+    Y_MAX_SPEED = 50  # (10 * meters) / seconds
+    X_MAX_ACCEL = 30  # general limit, think about adding force (F=M*a)
 
     def __init__(self):
         self.direction = 1  # negative: left (+x), positive: right (-x)
@@ -34,102 +42,65 @@ class PhysicsEntity:
         self.y_speed = 0
         self.x_accel = 0  # acceleration
         self.y_accel = 0
+        self._dx = 0  # update these variables for the movement
+        self._dy = 0
         self.x_movement = False
         self.jumping = False
 
     # moves the entity, this changes the rectangle
     # relies on delta time
-    def movement_physics(self, dt):
-        if self.ground:
-            # check if ground is still under entity
-            if not self.rect.colliderect(self.ground.rect.inflate(1, 1)):
-                self.ground = None
-            if not (self.x_accel or self.x_speed or self.y_accel or self.y_speed): # return if nothing is happening
+    def physics_movement(self, dt):  # todo: rewrite with Newtonian physics
+        # ground should be checked/set before this method is called
+        if not self.jumping:
+            if self.ground is not None and not (self.x_accel or self.x_speed or self.y_accel or self.y_speed):
                 return
+        # first move the player by it's acceleration (which can have been set by something else)
+        # x accel define the acceleration based on current accel, and movement input
+        x_accel_direction = lambda: (self.x_accel / abs(self.x_accel)) if self.x_accel != 0 else 0
+        x_move_direction = lambda: (self.x_speed / abs(self.x_speed)) if self.x_speed != 0 else 0
+        # multiply by the direction (+)or(-)self / self
+        if self.x_accel != 0:
+            # If accel is too high, X_MAX_ACCEL limits it
+            #self.x_accel = min(abs(self.x_accel), self.X_MAX_ACCEL) * x_accel_direction()
+            # x speed change
+            # speed up or down. If speed is to high, X_MAX_SPEED limits it
+            self.x_speed += x_accel_direction()
+            self.x_speed = min(abs(self.x_accel + self.x_speed), self.X_MAX_SPEED) * x_move_direction()
+            # using acceleration means you lose it (pushing costs energy)
+            # accel minuts 0 or a
+            self.x_accel -=  self.direction
+            # self.x_accel - min(abs(self.x_accel), 0) * (self.x_accel / abs(self.x_accel))
+        elif self.x_speed != 0:  # when there is no acceleration, but you are moving: you loose speed (de-accel)
+            # 1m/s divided by the time that has passed = 1m/(s**2) multiplied by it's direction
+            # loose max_speed in 1 second time, or just make x speed 0
+            self.x_speed -= min(abs(self.x_speed), self.X_MAX_SPEED * (dt / 1000)) * x_move_direction()
 
-        if dt == 0:
-            game_time = 0
-        else:
-            # the amount of time that has passed in the game relative to real time
-            game_time = 1 / dt / GAME_SPEED  # the time that has passed in game is the: time_per_frame / game_speed_per_frame
-
-        # x acceleration
-        if self.x_movement:
-            # todo: find out why this is done (and document it!)
-            self.x_accel -= 0  # min(self.x_accel*self.direction, self.direction * 30)  # deceleration constant
-
-        # x speed
-        if -self.X_MAX_SPEED < self.x_speed < self.X_MAX_SPEED:  # max speed
-            if self.direction:  # if player direction is right
-                self.x_speed = min(self.X_MAX_SPEED, self.x_accel * game_time + self.x_speed)
-            else:  # player direction is left
-                self.x_speed = max(-self.X_MAX_SPEED, self.x_accel * game_time - self.x_speed)
-        else:
-            self.x_speed -= self.direction * 30  # air displacement cost
+        y_accel_direction = lambda: (self.y_accel / abs(self.y_accel)) if self.y_accel != 0 else 0
+        y_move_direction = lambda: (self.y_speed / abs(self.x_speed)) if self.y_speed != 0 else 0
 
         if self.jumping:
-            self.ground = None
-            if self.y_accel < 0:
-                self.y_accel += 1 * game_time
-                if DEBUG:
-                    print(f"[PE] Y acceleration decreased by: {1 * game_time}")
-                self.ground = None
-            elif self.ground is None:
-                self.y_accel = GRAVITY * game_time
+            if self.ground:
+                self.y_speed = -self.JUMP_SPEED  # if jumping set speed directly at once
+                print("DB JUMP!")
             else:
-                self.y_accel = 0
-
-                # Y speed
-            if self.y_accel < 0 and not self.y_speed >= -self.Y_MAX_SPEED:
-                self.y_speed += self.y_accel * game_time
-            else:
-                self.y_accel += 1 * game_time
+                if self.y_speed < 0:  # going up
+                    self.y_speed += GRAVITY * (dt / 60)
+                else:
+                    self.jumping = False
         else:
-            # Y acceleration
-            if self.y_accel < 0:
-                self.y_accel += 1 * game_time
-                self.ground = None
-            elif self.ground is None:
-                self.y_accel = GRAVITY * game_time
+            if self.ground:
+                self.y_speed = 0
             else:
-                self.y_accel = 0
+                self.y_speed += GRAVITY  # min(abs(self.y_speed + self.y_accel), self.Y_MAX_SPEED)
 
-        # Y speed
-        if self.ground:
-            self.y_speed = 0
-        elif not self.y_speed >= self.Y_MAX_SPEED:
-            self.y_speed += self.y_accel * game_time
-        else:
-            self.y_accel += 1 * game_time
+        # move rect by delta movement
+        dx, dy = self.x_speed, self.y_speed
 
-        # reports jumping accel
-        if 0 < self.y_accel < 2:
-            if DEBUG:
-                print("[PE] accel on turn-auround: {}".format(self.y_accel))
+        self.rect.move_ip(dx, dy)
 
-        # image edge collision
-        l, t, _, _ = self.rect
-        boundary_offset = 0
-        if not 0 <= l:
-            self.x_speed = 0
-            self.x_accel = 0
-            if 0 >= l:
-                boundary_offset = 1
-            else:
-                boundary_offset = 1
-            if DEBUG:
-                print("[d] boundary offset: {}".format(self.y_speed))
-
-        dx, dy = self.x_speed * (game_time), self.y_speed * (game_time)
-        self.rect.move_ip(dx + boundary_offset, dy)
-        if DEBUG:
-            print("[PE] speed: ({}, {}), accel: ({}, {})".format(self.x_speed, self.y_speed, self.x_accel, self.y_accel))
-
-class weopon:
-    pass
-
-class phial(weopon):
-    pass
+        if PHYSICS_DEBUG:
+            print(f"[PE] {repr(self)} speed:({(self.x_speed)}, {(self.y_speed)}), accel:({(self.x_accel)}, {(self.y_accel)})")
+            print(f"[PE] movement:({dx}, {dy})")
 
 
 class GraphicsComponent(pygame.sprite.Sprite):
@@ -141,7 +112,7 @@ class GraphicsComponent(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         # create an ID for  every graphical object
         self.id = self.__class__.id
-        GraphicsComponent.id += 1  # increment class variable
+        GraphicsComponent.id += 1  # increment class identifier for the next
         self.graphics_controller = graphics_controller  # graphics controller so components can take care of blitting
         self._find_resource()  # automatically searches for the appropriate surfaces that go with the component
         # use image size if no size is specified
@@ -151,14 +122,16 @@ class GraphicsComponent(pygame.sprite.Sprite):
             self.size = size
         # prepare image (size, alpha channel, etc.)
         self._init_image()
-        self.rect = pygame.Rect(pos, self.size)  # a rectangle which represents the exact position in the game
+        self.rect = pygame.Rect(pos, self.size)  # a rectangle which represents it's position in the level
         # DEBUG information
         if INFO:
             print("[GC] New Game Component '{}', ID: {}, pos: ({}, {}), size: ({}, {})".format(self.TYPE, self.id,
                                                                                                *self.rect))
-
     def __eq__(self, other):
         return self.id == other.id
+
+    def __repr__(self):
+        return str(self.id)
 
     # todo: add logging code
     def __del__(self):
@@ -185,21 +158,140 @@ class GraphicsComponent(pygame.sprite.Sprite):
             self.graphics_controller.update()
 
     # display image onto virtual screen (inside the active display)
-    def display(self, screen):
-        self.graphics_controller.blit_to_camera(self.image, self.rect, screen)
+    def display(self, screen=None):
+        if self.image == None:
+            if Warning: print(f"[GC] {self} has no image!")
+            return
+        if screen is not None:
+            self.graphics_controller.blit_to_camera(self.image, self.rect, screen)
+        else:
+            graphics_controller.blit(self.image, self.rect)
 
-class LevelComponent(GraphicsComponent):
+class GameComponent(GraphicsComponent):
     """Base class for all level building blocks"""
 
-    def update(self):
+    def __init__(self, pos, size=None):
+        super().__init__(pos, size)
+        self.level = None
+
+    def __repr__(self):
+        return f"{self.TYPE}: {super().__repr__()}"
+
+    def update(self, dt):
         raise NotImplementedError(f"Implement update for non-static type: {self.TYPE}")
 
+    def kill(self):
+        if self.level:
+            self.level.del_component(self)
+
+class Weapon(GraphicsComponent):
+    TYPE = 'Weapon'
+    def __init__(self, owner, ammo_type):
+        self.owner = owner
+        x, y, _, _ = owner.rect
+        # super().__init__((x,y))
+        self.ammo_type = ammo_type
+        self.amount = 20  # new weapon always has 5 ammo
+        self.projectile = None
+
+    def set_ammo(self, ammo_type, amount):
+        self.ammo_type = ammo_type
+        self.amount = amount
+
+    def add_ammo(self, amount):
+        self.amount += amount
+
+    def has_ammo(self):
+        return self.amount > 0
+
+    def use(self, point): # direction is the position of the mouse
+        self.owner.level.add_component(self.projectile)
+        if not self.projectile:
+            return
+        if point[0] > self.owner.rect.centerx:
+            direction = 'right'
+        else:
+            direction = 'left'
+        self.projectile.throw(direction)
+        self.projectile = None
+
+    def load_projectile(self):
+        if self.amount > 0:  # check if empty
+            self.amount -= 1
+            self.projectile = self.ammo_type(self.owner.rect.center)
+
+
+class Vial(GameComponent, PhysicsEntity):
+    TYPE = 'Erlemeyer1'
+    # these default values have been chosen for a non-moving entity
+    X_ACCELERATION_SPEED = 30
+    Y_ACCELERATION_SPEED = 25
+    JUMP_SPEED = 50
+
+    X_MAX_SPEED = 30  # 10 pixels per second
+    Y_MAX_SPEED = 50  # (10 * meters) / seconds
+    X_MAX_ACCEL = 30  # general limit, think about adding force (F=M*a)
+
+    DAMAGE = 100
+
+    def __init__(self, pos, size=(14, 14)):
+        super().__init__(pos, size)
+        PhysicsEntity.__init__(self)
+        self.ground = True
+
+    def _init_image(self):
+        self.image = pygame.transform.smoothscale(self.resource, self.size)
+
+    def update(self, dt):
+        self.physics_movement(dt)
+        pygame.transform.rotate(self.image, 360*(dt/1000))
+
+    def on_collision(self, other):
+        if type(other) == Monster:
+            self.kill()
+        elif type(other) == Ground:
+            self.kill()
+            print("erlemeyer fell on the ground")
+
+    def throw(self, direction):
+        if direction == 'right':
+            self.x_speed = 30
+            self.direction = self.RIGHT
+        elif direction == 'left':
+            self.x_speed = -30
+            self.direction = self.LEFT
+        else:
+            raise ValueError(f"Movement type not supported: {movement}")
+        self.y_speed = -12
+
+    #start with a speed by acceleration, and decrease speed over time
+    # start with speed up, decreese over time
+    def physics_movement(self, dt):  # todo: rewrite with Newtonian physics
+        # first move the player by it's acceleration (which can have been set by something else)
+        # x accel define the acceleration based on current accel, and movement input
+        x_accel_direction = lambda: (self.x_accel / abs(self.x_accel)) if self.x_accel != 0 else 0
+        x_move_direction = lambda: (self.x_speed / abs(self.x_speed)) if self.x_speed != 0 else 0
+        # multiply by the direction (+)or(-)self / self
+        self.x_speed -= x_move_direction()
+        self.y_speed += 1
+
+        # move rect by delta movement
+        dx, dy = self.x_speed, self.y_speed
+
+        self.rect.move_ip(dx, dy)
+
+        if PHYSICS_DEBUG:
+            print(
+                f"[PE] {repr(self)} speed:({(self.x_speed)}, {(self.y_speed)}), accel:({(self.x_accel)}, {(self.y_accel)})")
+            print(f"[PE] movement:({dx}, {dy})")
+
 # Renders text and makes a surface for it
-class Text(GraphicsComponent):
+class Text(GameComponent):
     """a surface with rendered text"""
     TYPE = "Text"
 
-    def __init__(self, text, pos, size, max_time=0, font_size=20):
+    # max time in seconds
+    def __init__(self, text, pos, size, max_time=-1, font_size=20):
         self.font = pygame.font.SysFont("Ariel", font_size)
         self.text = text
         self.image = None
@@ -213,13 +305,16 @@ class Text(GraphicsComponent):
     def _init_image(self):
         text = self.font.render(self.text, True, (255, 255, 255))
         self.image = text  #.convert_alpha()
-        if DEBUG:
-            print(f"text image has init: {self.rect}")
 
     def update(self, dt):
-        if self.max_time:
+        if self.max_time == -1:
+            pass
+        elif self.max_time > 0:
             if time.time() - self.start_time > self.max_time:
-                event_handler.add()
+                self.kill()
+
+    def is_alive(self):
+        return self.max_time > 0
 
 # text meters on screen (for debugging)
 # todo: enable image base meters
@@ -242,8 +337,17 @@ class Meter(GraphicsComponent):
     def display(self):
         pass
 
-class Character(LevelComponent, PhysicsEntity):
+class Character(GameComponent, PhysicsEntity):
     """Physical Entity which is able to move ('left', 'right', 'up', 'down', and jumping)"""
+
+    # these default values have been chosen for a Player
+    X_ACCELERATION_SPEED = 14  # pixels/(s**2)
+    Y_ACCELERATION_SPEED = 20
+    JUMP_SPEED = 30
+    # the player is about 64 pixels high (which might translate to 2 or more meters
+    X_MAX_SPEED = 18  # pixels per second
+    Y_MAX_SPEED = 14  # (10 * meters) / seconds
+    X_MAX_ACCEL = -1  # think about adding force (F=M*a)
 
     def __init__(self, pos, size):
         # every character has a name
@@ -253,10 +357,7 @@ class Character(LevelComponent, PhysicsEntity):
         super().__init__(pos, size)
         PhysicsEntity.__init__(self)
         self.life_points = 100
-        self.unvulnerable = 0 # amount of unvulnerable frames
-
-    def is_alive(self):
-        return self.life_points <= 0
+        self.invulnerable = 0  # amount of invulnerable frames
 
     # all characters have a list as resource
     def _find_resource(self):
@@ -268,23 +369,32 @@ class Character(LevelComponent, PhysicsEntity):
         self.image_amount = resource_amount
 
     def _init_image(self):  # prepare the images, and cycle variables
+
         right_walk_images = self.walk_images
         left_walk_images = []
+
         for i in range(self.image_amount):
             self.walk_images[i] = pygame.transform.smoothscale(self.walk_images[i].convert_alpha(), self.size)
             left_walk_images.append(pygame.transform.flip(self.walk_images[i], True, False))
-        self.directional_walk_images = {-1: left_walk_images, 1: right_walk_images}
+        self.directional_walk_images = {-1*self.direction: left_walk_images, 1*self.direction: right_walk_images}
         self.image = self.walk_images[self.walk_cycle]
+        print(f"[CH] images init: {self.image_amount}")
 
-    def next_image(self):
-        if not self.x_movement or self.y_accel: return
-        if self.direction == -1:  # -1 is left
+    def _next_image(self):
+        if self.x_movement:
             self.walk_images = self.directional_walk_images[self.direction]
+            self.walk_cycle += 1
+            if self.walk_cycle >= 7: # there are 7 walking animations
+                self.walk_cycle = 0
+            self.image = self.walk_images[self.walk_cycle]
+        if self.invulnerable:  # blink once a tick
+            if self.image == None:
+                self.image = self.walk_images[self.walk_cycle]
+            else:
+                self.image = None
 
-        self.walk_cycle += 1
-        if self.walk_cycle >= 7: # there are 7 walking animations
-            self.walk_cycle = 0
-        self.image = self.walk_images[self.walk_cycle]
+    def is_alive(self):
+        return self.life_points > 0
 
     # when no key press is registered anymore the input event system should notify the player it's standing still
     # monsters, and other self moving entities should decide on their own when to stop
@@ -292,20 +402,24 @@ class Character(LevelComponent, PhysicsEntity):
         if movement == 'right':
             self.x_accel = self.X_ACCELERATION_SPEED
             self.x_movement = True
+            self.direction = self.RIGHT
         elif movement == 'left':
             self.x_accel = -self.X_ACCELERATION_SPEED
+            self.direction = self.LEFT
             self.x_movement = True
-        if movement == 'up':
+        elif movement == 'up':
             if self.stairs:
                 self.y_accel = -self.Y_ACCELERATION_SPEED
-                self.move_y = True
+                self.y_movement = True
         elif movement == 'down':
-            self.y_accel = self.Y_ACCELERATION_SPEED
-            self.move_y = True
-        if movement == 'jumping':
-            if self.ground is not None:
-                self.y_accel = -self.JUMP_ACCELERATION_SPEED
-                self.jumping == True
+            if self.stairs:
+                self.y_accel = self.Y_ACCELERATION_SPEED
+                self.y_movement = True
+        elif movement == 'jump':
+            self.jumping = True
+
+        else:
+            raise ValueError(f"Movement type not supported: {movement}")
 
         if self.x_accel * self.direction < 0:  # detects if direction has changed by the negative/positive change
             if DEBUG:
@@ -313,28 +427,31 @@ class Character(LevelComponent, PhysicsEntity):
             self.direction *= -1  # reverse direction
             self.turn_around()
 
-    # stops acceleration
+    # stops acceleration, and speed
     def stop_move(self, movement):
         if movement == 'right':
             if self.x_speed > 0 or self.x_accel > 0:
                 self.x_speed = 0
                 self.x_accel = 0
             self.x_movement = False
+            self.walk_cycle = 0
         elif movement == 'left':
             if self.x_speed < 0 or self.x_accel < 0:
                 self.x_speed = 0
                 self.x_accel = 0
+                self.walk_cycle = 0
             self.x_movement = False
-        if movement == 'up':
-            pass
+        elif movement == 'up':
+            self.y_movement = False
         elif movement == 'down':
-            self.y_accel = 0
-            self.y_speed = 0
-        if movement == 'jumping':
+            self.y_movement = False
+        elif movement == 'jump':
             pass
+        else:
+            raise ValueError(f"Movement type not supported: {movement}")
 
     def turn_around(self):
-        self.image = pygame.transform.flip(self.image, True, False)
+        self.walk_images = self.directional_walk_images[self.direction]
         self.walk_cycle = 0  # walk animation must restart when moving in different direction
 
     # collision detection adds a new ground
@@ -342,50 +459,88 @@ class Character(LevelComponent, PhysicsEntity):
         """grounds the entity, and stops vertical movement"""
         if self.ground is None:
             self.y_accel = 0
-            self.x_accel = 0
+            self.y_speed = 0
+
         self.ground = ground
-        self.rect.bottomleft = (self.rect.bottomleft[0], ground.rect.topleft[1] + 1)
+        self.rect.bottom = ground.rect.top + 1
+        self.rect.bottom = ground.rect.top + 1
 
     # must be implemented for physical entities
     def on_collision(self, other):
         if type(other) == Ground:
-            self.set_ground(other)
+            if other.rect.left < self.rect.centerx < other.rect.right:
+                self.set_ground(other)
+            elif self.rect.left < other.rect.left:
+                self.x_accel = min(self.x_accel, 0)  # don't move right
+            elif self.rect.right > other.rect.right:
+                self.x_accel = max(self.x_accel, 0)  # don't move left
+
         elif type(other) == BuildingBlock:
             # find from which side the block is touched
-            print("[CH} building block touched!")
+            print("[CH] building block touched!")
 
-# the main player class
+    def update(self, dt):
+        self.physics_movement(dt)
+        self._next_image()
+
+# the controlled player(s) class
 class Player(Character):
     """"The active player"""
     TYPE = 'Player'
 
     def __init__(self, pos, size):
         self.name = self.TYPE
-        self.direction = 1 # the player sprite has a different direction
+        self.direction = 1  # the player sprite starting direction is 'right'
         self.walk_cycle = 0
         super().__init__(pos, size)
+        self.accesories = {Weapon: None}  # things you wear, and hold
         self.inventory = {} # item: item_amount
+        self.accesories[Weapon] = Weapon(self, Vial)
+        self._first_attack = True
+
+    def display(self, screen):
+        super().display(screen) # display self
+        # display all things the player is holding, and wearing
+        for acc in self.accesories.values():
+            if acc is not None and not isinstance(acc, GraphicsComponent):
+                acc.display(screen)
 
     def update(self, dt):
-        self.walk_images = self.directional_walk_images[self.direction]
-        self.movement_physics(dt)
-        self.next_image()
+        if dt == 0: return  # time must pas, else an update is meaningless
+        super().update(dt)
+        if self.invulnerable:
+            self.invulnerable -= 1
+            if PLAYER_DEBUG: print(f"invulnerable for: {self.invulnerable}")
 
     def on_collision(self, other):
-        super().on_collision(other)
-        if other.TYPE == 'Monster':
-            if self.unvulnerable: return
-            print(f'{self} touched a: {other.TYPE}!')
-            self.rect.centerx += other.direction * 10
-            self.life_points -= 20
-            self.unvulnerable = 60 # (30 frames/second) * 2 seconds = 60 frames
+        if isinstance(other, Monster):  # if it's a monster (or subtype)
+            self.x_accel /= 2  # half the acceleration
+            anti_direction = - (other.rect.centerx - self.rect.centerx) / abs(other.rect.centerx - self.rect.centerx or 1)
+            self.damage(20, anti_direction)
 
-    # throw vial
+        else:
+            super().on_collision(other)
+
+    # throw Vial
     def attack(self, pos):
-        if INFO:
+        if self._first_attack:
+            length = len(SALT_DISSOLVING_INSTRUCTIONS)
+            firstpart, secondpart = SALT_DISSOLVING_INSTRUCTIONS[: int(length/ 2)+2], SALT_DISSOLVING_INSTRUCTIONS[int(length/2)+2:]
+            self.level.add_component(Text(firstpart, (self.rect.left, self.rect.top-30),
+                                          (200,50), max_time=100,font_size=22))
+            self.level.add_component(Text(secondpart, (self.rect.left, self.rect.top-10),
+                                          (200,50), max_time=100,font_size=22))
+            self.level.freeze = True
+            self._first_attack = not self._first_attack
+        weapon = self.accesories[Weapon]
+        if weapon is not None and weapon.has_ammo():
+            weapon.load_projectile()
+            weapon.use(pos)
+        if DEBUG:
             print("[PL] attack at: {}".format(pos))  # do something
 
-    def stay_on_the_ground(self, dt):  # for boats or other vehicles
+
+    def stop_independent_x_movement(self, dt):  # for boats or other vehicles
         if dt == 0:
             game_time = 0
             if WARNING:
@@ -404,18 +559,27 @@ class Player(Character):
 
         print("[d] floor_y: {}, self_y: {},")
 
+    def damage(self, damage, direction):
+        if self.invulnerable <= 0:
+            self.invulnerable = 60  # (1 / (0.033 second/frame)) * 2 seconds ~= 60 frames
+            if DEBUG: print("f[PL] invulnerable for {int(2 * 1/GAME_SPEED)} ticks")  # debug invulnerability time'
+
+            self.x_accel = 6 * direction
+            self.y_accel = - self.JUMP_SPEED / 2  # you get thrown in the air
+            self.jumping = True
+
+
 # A graphical game component which mainly interacts with the player (and monsters)
 class Monster(Character):
     """Monster baseclass"""
     TYPE = 'Monster'
 
-    X_ACCELERATION_SPEED = 4
-    Y_ACCELERATION_SPEED = 4
-    JUMP_ACCELERATION_SPEED = 5
+    X_ACCELERATION_SPEED = 5
+    Y_ACCELERATION_SPEED = 15
+    JUMP_SPEED = 20
 
-    X_MAX_SPEED = 20  # 10 pixels per meter per second
-    Y_MAX_SPEED = 15  # (10 * meters) / seconds
-    X_MAX_ACCEL = -1
+    X_MAX_SPEED = 10  # 10 pixels per meter per second
+    Y_MAX_SPEED = 10  # (10 * meters) / seconds
 
     def __init__(self, pos, size):
         super().__init__(pos, size)
@@ -423,13 +587,28 @@ class Monster(Character):
         self.life_points = 100
 
     def update(self, dt):
-        self.movement_physics(dt)
+        super().update(dt)
         self.make_decision()
+        print(f'schagel PE: xspeed: {self.x_speed}, pos: {self.rect}')
 
     def make_decision(self):
         raise NotImplementedError("please implement this method!")
 
+    def on_collision(self, other):
+        if type(other) == Player:
+            self.x_accel /= 2
+        elif type(other) == Vial:
+            self.damage(other.DAMAGE)
+        else:
+            super().on_collision(other)
 
+    def damage(self, damage):
+        self.life_points -= damage
+        if self.life_points <= 0:
+            self.kill()
+    def kill(self):
+        self.level.add_component(Text("NaCl -> Na+(aq) + Cl-(aq)", self.rect.topleft, (200, 100), max_time=10))
+        super().kill()
 
 class TestMonster(Monster):
     def __init__(self, pos):
@@ -442,23 +621,30 @@ class TestMonster(Monster):
 class Schagel(Monster):
     """Schagel is a jumping monster"""
     def __init__(self, pos, size):
-        print(self.__class__.__name__)
+        self.direction = -1  # sprite faces left
         self.name = self.__class__.__name__
         super().__init__(pos, size)
 
     # basic decision making
-    # todo: program AI for character's decision making
+    # todo: implement AI for character's decision making
     def make_decision(self):
         if self.enemy is None:
             return
-        if self.enemy.rect.center[0] < self.rect.centerx:
+        if self.enemy.rect.centerx-15 < self.rect.centerx:  # 10 is so the monster walks through the player
+            if self.direction == self.RIGHT:
+                self.stop_move('right')
             self.move('left')
-        elif self.enemy.rect.centerx > self.rect.centerx:
+        elif self.enemy.rect.centerx+15 > self.rect.centerx:
+            if self.direction == self.LEFT:
+                self.stop_move('left')
             self.move('right')
         if self.enemy.rect.center[1] > self.rect.centery and 200 > abs(self.enemy.rect.centerx - self.rect.centerx):
-            self.move('jumping')
+            self.move('jump')
+        if self.ground and (self.ground.rect.right - 20 < self.rect.centerx or
+                            self.rect.centerx < self.ground.rect.left + 20):
+            self.move('jump')
 
-class Portal(LevelComponent):
+class Portal(GameComponent):
     """portal"""
     TYPE = 'portal'
 
@@ -470,7 +656,7 @@ class Portal(LevelComponent):
 
 # static parts
 
-class StaticLevelComponent(LevelComponent):
+class StaticLevelComponent(GameComponent):
     """Base class for all image building blocks"""
 
     def __init__(self, resource_name, pos, size=None):
@@ -479,6 +665,9 @@ class StaticLevelComponent(LevelComponent):
             raise ValueError("Size has to be a tuple of length 2!")
         self.TYPE = resource_name  # A correct name is needed for (image) init
         super(StaticLevelComponent, self).__init__(pos, size)
+
+    def __repr__(self):
+        return super().__repr__() + f"pos: {self.rect.topleft}"
 
     def _init_image(self):
         try:
@@ -489,6 +678,9 @@ class StaticLevelComponent(LevelComponent):
             self.image = pygame.transform.scale(self.resource, self.size)
 
     def update(self, dt):
+        pass
+
+    def on_collision(self, other):
         pass
 
 class BuildingBlock(StaticLevelComponent):
@@ -514,7 +706,6 @@ class Background(StaticLevelComponent):
                 size = (size[0], CAMERA_HEIGHT)
 
             return size # do something with this
-
 
 class ForeGround(StaticLevelComponent):
     """ForeGround"""
