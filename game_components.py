@@ -194,7 +194,7 @@ class Weapon(GraphicsComponent):
         x, y, _, _ = owner.rect
         # super().__init__((x,y))
         self.ammo_type = ammo_type
-        self.amount = 20  # new weapon always has 5 ammo
+        self.amount = 500  # new weapon always has 5 ammo
         self.projectile = None
 
     def set_ammo(self, ammo_type, amount):
