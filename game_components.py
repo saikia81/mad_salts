@@ -145,7 +145,10 @@ class GraphicsComponent(pygame.sprite.Sprite):
             print(ex)
 
     def _find_resource(self):
-        self.resource = self.graphics_controller.resources[self.TYPE.lower()]  # search for image by type name
+        try:
+            self.resource = self.graphics_controller.resources[self.TYPE.lower()]  # search for image by type name
+        except Exception:
+            self.resource = self.graphics_controller.resources[self.TYPE.lower()[:-11]] # search for image by type name
 
     # abstract
     def _init_image(self):
@@ -237,7 +240,6 @@ class Vial(GameComponent, PhysicsEntity):
     def __init__(self, pos, size=(14, 14)):
         super().__init__(pos, size)
         PhysicsEntity.__init__(self)
-        self.ground = True
 
     def _init_image(self):
         self.image = pygame.transform.smoothscale(self.resource, self.size)
@@ -522,7 +524,8 @@ class Player(Character):
             super().on_collision(other)
 
     # throw Vial
-    def attack(self, pos):
+    def attack(self, relative_pos):
+        pos = relative_pos[0] - self.level.camera.rect.left, relative_pos[1] - self.level.camera.rect.top
         if self._first_attack:
             length = len(SALT_DISSOLVING_INSTRUCTIONS)
             firstpart, secondpart = SALT_DISSOLVING_INSTRUCTIONS[: int(length/ 2)+2], SALT_DISSOLVING_INSTRUCTIONS[int(length/2)+2:]

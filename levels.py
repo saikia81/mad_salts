@@ -137,7 +137,7 @@ class Level:
             self.add_character(Schagel((random.randint(0, self.size[0]), self.size[1]/2), (58, 52)))
 
     def check_level_finished(self):
-        if self.killed_monster >= 5:
+        if self.killed_monster >= 8:
             return True
         return False
 
@@ -286,58 +286,38 @@ def level_builder(level_number):
         dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 10000))
 
         # dynamic_level_components
-    elif level_number == 1: #forest
+    elif level_number == 2: #forest
         level_size = (3840, 1080)
         level_name = 'forest'
 
-        static_level_components.append(Ground('forest_ground01', (-20, 800), size=(800, 200)))
+        static_level_components.append(Ground('forest_ground01', (-20, 770), size=(800, 200)))
 
-        static_level_components.append(Ground('forest_ground02', (950, 800), size=(600, 200)))
+        static_level_components.append(Ground('forest_ground02', (950, 770), size=(600, 200)))
 
-        static_level_components.append(Ground('forest_ground01', (1550, 800), size=(800, 200)))
+        static_level_components.append(Ground('forest_ground01', (1550, 770), size=(800, 200)))
 
-        static_level_components.append(Ground('forest_ground02', (1550+800, 800), size=(600, 200)))
+        static_level_components.append(Ground('forest_ground02', (1550+800, 770), size=(600, 200)))
 
-        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 400), (300, 100), max_time=60))
+        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 400), (300, 770), max_time=60))
 
-    elif level_number == 2: #lab
+    elif level_number == 1: #lab
         level_size = (1920, 1080)
         level_name = 'lab'
         ground_pos = 500
-        static_level_components.append(Ground('forest_ground02', (-50, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (-50, 950), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (-50, 800), size=(450, 350)))
 
-        static_level_components.append(Ground('forest_ground02', (150, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (150, 950), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (450, 800), size=(600, 350)))
 
-        static_level_components.append(Ground('forest_ground02', (300, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (300, 950), size=(300, 200)))
 
-        static_level_components.append(Ground('forest_ground02', (450, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (450, 950), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1060, 800), size=(500, 350)))
 
-        static_level_components.append(Ground('forest_ground02', (600, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (600, 950), size=(300, 200)))
 
-        static_level_components.append(Ground('forest_ground02', (750, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (750, 950), size=(300, 200)))
 
-        static_level_components.append(Ground('forest_ground02', (900, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (900, 950), size=(300, 200)))
+        static_level_components.append(Ground('forest_ground02', (1300, 800), size=(450, 350)))
 
-        static_level_components.append(Ground('forest_ground02', (1050, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (1050, 950), size=(300, 200)))
+        static_level_components.append(Background('lab_stuff01', (600, 470), size=(450, 350)))
 
-        static_level_components.append(Ground('forest_ground02', (1200, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (1200, 950), size=(300, 200)))
-
-        static_level_components.append(Ground('forest_ground02', (1350, 800), size=(300, 200)))
-        static_level_components.append(Ground('forest_ground02', (1350, 950), size=(300, 200)))
-
-        static_level_components.append(ForeGround('lab_background01', (225, 380)))
-        static_level_components.append(ForeGround('lab_stuff01', (1000, 500)))
-
-        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 100), (300, 100), 1000))
+        dynamic_level_components.append(Text(MOVEMENT_INSTRUCTIONS, (100, 400), (300, 100), max_time=60))
 
 
     else:
