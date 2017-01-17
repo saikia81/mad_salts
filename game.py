@@ -274,7 +274,7 @@ class Game:
             if self.level:
                 self.meters['fps'] = Text(f'FPS: {int(frames_per_time)}',
                                                         pos=(CAMERA_WIDTH - 200, 10), size=(200, 200), max_time=-1)
-                self.meters['kills_left'] = Text(f'kills left: : {max(int(self.level.killed_monster)-8)}',
+                self.meters['kills_left'] = Text(f'kills left: : {max(int(self.level.killed_monster-8),0)}',
                                                  pos=(10, 20), size=(200, 200), max_time=-1)
                 if self.level.player:
                     self.meters['player_health'] = Text(f'HEALTH: {int(self.level.player.life_points)}',
